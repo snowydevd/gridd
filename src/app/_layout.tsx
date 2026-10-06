@@ -6,12 +6,14 @@ import {
   HankenGrotesk_700Bold,
   useFonts,
 } from '@expo-google-fonts/hanken-grotesk';
+import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
 import { Colors } from '@/constants/theme';
+import { authStorage, convex } from '@/lib/convex';
 import { SavedProvider } from '@/state/saved';
 
 SplashScreen.preventAutoHideAsync();
@@ -45,16 +47,18 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
 
   return (
-    <ThemeProvider value={theme}>
-      <SavedProvider>
-        <StatusBar style="light" />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.canvas } }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="event/[id]" />
-          <Stack.Screen name="publish" options={{ presentation: 'fullScreenModal' }} />
-          <Stack.Screen name="login" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-        </Stack>
-      </SavedProvider>
-    </ThemeProvider>
+    <ConvexAuthProvider client={convex} storage={authStorage}>
+      <ThemeProvider value={theme}>
+        <SavedProvider>
+          <StatusBar style="light" />
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.canvas } }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="event/[id]" />
+            <Stack.Screen name="publish" options={{ presentation: 'fullScreenModal' }} />
+            <Stack.Screen name="login" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+          </Stack>
+        </SavedProvider>
+      </ThemeProvider>
+    </ConvexAuthProvider>
   );
 }

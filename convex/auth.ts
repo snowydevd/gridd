@@ -6,6 +6,7 @@ import type { DataModel } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { initNewUser } from "./lib/newUser";
 import { ResendOTPPasswordReset } from "./lib/passwordReset";
+import { resolveRedirect } from "./lib/redirect";
 import { passwordProfile, validatePassword } from "./lib/validation";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
@@ -28,6 +29,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     }),
   ],
   callbacks: {
+    async redirect({ redirectTo }) {
+      return resolveRedirect(redirectTo, {
+        siteUrl: process.env.SITE_URL!,
+        allowExpoGo: process.env.AUTH_ALLOW_EXPO_GO === "true",
+      });
+    },
     async afterUserCreatedOrUpdated(ctx, args) {
       await initNewUser(ctx as unknown as MutationCtx, args);
     },
