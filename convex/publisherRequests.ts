@@ -75,7 +75,9 @@ async function resolve(
   if (!request) fail("NOT_FOUND", "La solicitud no existe.");
   if (request.status !== "pending") fail("CONFLICT", "La solicitud ya fue resuelta.");
   await ctx.db.patch(requestId, { status, reviewedBy: admin._id, reviewedAt: Date.now() });
-  if (status === "approved") {
+  const requester = await ctx.db.get(request.userId);
+  // Sólo se promueve a quien sigue siendo user: no le baja el rol a un admin.
+  if (status === "approved" && requester && roleOf(requester) === "user") {
     await ctx.db.patch(request.userId, { role: "publisher", updatedAt: Date.now() });
   }
   return null;

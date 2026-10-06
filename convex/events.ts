@@ -20,10 +20,21 @@ const eventFields = {
   lon: v.number(),
 };
 
-async function assertImageExists(ctx: MutationCtx, imageId: Id<"_storage"> | undefined) {
-  if (imageId && !(await ctx.db.system.get(imageId))) {
+async function assertImageExists(
+  ctx: MutationCtx,
+  imageId: Id<"_storage"> | undefined,
+  eventId?: Id<"events">,
+) {
+  if (!imageId) return;
+  if (!(await ctx.db.system.get(imageId))) {
     fail("INVALID", "La imagen no existe. Volvé a subirla.");
   }
+  // Una imagen ya usada por otro evento no se puede tomar: al reemplazarla se borraría la ajena.
+  const owner = await ctx.db
+    .query("events")
+    .withIndex("by_image", (q) => q.eq("imageId", imageId))
+    .first();
+  if (owner && owner._id !== eventId) fail("FORBIDDEN", "Esa imagen pertenece a otro evento.");
 }
 
 async function getEventOrFail(ctx: MutationCtx, id: Id<"events">) {
@@ -101,7 +112,7 @@ export const update = mutation({
     let nextImage = event.imageId;
     if (removeImage) nextImage = undefined;
     if (imageId !== undefined) {
-      await assertImageExists(ctx, imageId);
+      await assertImageExists(ctx, imageId, id);
       nextImage = imageId;
     }
     if (event.imageId && event.imageId !== nextImage) {

@@ -49,7 +49,8 @@ export default defineSchema({
   })
     .index("by_slug", ["slug"])
     .index("by_status_startsAt", ["status", "startsAt"])
-    .index("by_organizer", ["organizerId", "startsAt"]),
+    .index("by_organizer", ["organizerId", "startsAt"])
+    .index("by_image", ["imageId"]),
 
   attendances: defineTable({
     userId: v.id("users"),
