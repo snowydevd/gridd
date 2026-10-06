@@ -21,6 +21,7 @@ import type * as lib_passwordReset from "../lib/passwordReset.js";
 import type * as lib_slug from "../lib/slug.js";
 import type * as lib_validation from "../lib/validation.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as publisherRequests from "../publisherRequests.js";
 import type * as users from "../users.js";
 
 import type {
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   "lib/slug": typeof lib_slug;
   "lib/validation": typeof lib_validation;
   "lib/validators": typeof lib_validators;
+  publisherRequests: typeof publisherRequests;
   users: typeof users;
 }>;
 
