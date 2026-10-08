@@ -8,11 +8,12 @@
     "scheme": "gridd",
     "userInterfaceStyle": "dark",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "com.gridd.app"
     },
     "android": {
+      "package": "com.gridd.app",
       "adaptiveIcon": {
-        "backgroundColor": "#0B0B0C",
+        "backgroundColor": "#DFFF00",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -30,10 +31,16 @@
         {
           "backgroundColor": "#0B0B0C",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 200
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Gridd usa tu ubicación para mostrarte los encuentros cerca tuyo."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -24,6 +24,8 @@ export type MeetEvent = {
   organizer: { name: string; initials: string; verified?: boolean };
   /** Position on the stylized map, as 0–1 fractions of its width/height. */
   map: { x: number; y: number };
+  /** Ubicación real, para el mapa nativo. */
+  coords: { latitude: number; longitude: number };
   past?: boolean;
 };
 
@@ -45,6 +47,7 @@ export const events: MeetEvent[] = [
       'La clásica edición nocturna en la Rambla. Proyectos JDM, euro, stance y clásicos bajo las luces de Kibón. Entrada libre.',
     organizer: { name: 'Montevideo Midnight Club', initials: 'MMC', verified: true },
     map: { x: 0.56, y: 0.62 },
+    coords: { latitude: -34.9126, longitude: -56.1408 },
   },
   {
     id: 'jdm-night-garage',
@@ -63,6 +66,7 @@ export const events: MeetEvent[] = [
       'Juntada tranqui de proyectos japoneses en un estacionamiento techado. Traé tu auto o vení a mirar.',
     organizer: { name: 'Garage 20B', initials: '20B' },
     map: { x: 0.78, y: 0.38 },
+    coords: { latitude: -34.8705, longitude: -56.0505 },
   },
   {
     id: 'clasicos-rambla',
@@ -80,6 +84,7 @@ export const events: MeetEvent[] = [
       'Tarde de clásicos frente al río. Muscle, vintage y nacionales restaurados. Ideal para ir en familia.',
     organizer: { name: 'Club Clásicos UY', initials: 'CCU', verified: true },
     map: { x: 0.86, y: 0.7 },
+    coords: { latitude: -34.9083, longitude: -56.0846 },
   },
   {
     id: 'drift-pinar',
@@ -98,6 +103,7 @@ export const events: MeetEvent[] = [
       'Tanda libre de drift en circuito cerrado. Entrada para pilotos y público general.',
     organizer: { name: 'Drift Uruguay', initials: 'DUY' },
     map: { x: 0.24, y: 0.3 },
+    coords: { latitude: -34.7959, longitude: -55.9172 },
   },
   {
     id: 'expo-fierros',
@@ -115,6 +121,7 @@ export const events: MeetEvent[] = [
     description: 'La exposición anual más grande del sur. Más de 300 autos, food trucks y música.',
     organizer: { name: 'Fierros del Sur', initials: 'FDS', verified: true },
     map: { x: 0.68, y: 0.18 },
+    coords: { latitude: -34.8617, longitude: -56.0182 },
   },
   {
     id: 'euro-meet',
@@ -131,6 +138,7 @@ export const events: MeetEvent[] = [
     description: 'Noche europea con banco de potencia abierto. Inscripción previa para medir.',
     organizer: { name: 'Euro Club MVD', initials: 'ECM' },
     map: { x: 0.36, y: 0.5 },
+    coords: { latitude: -34.8358, longitude: -56.038 },
   },
   {
     id: 'trackday-pinar',
@@ -147,6 +155,7 @@ export const events: MeetEvent[] = [
     description: 'Jornada de pista abierta.',
     organizer: { name: 'Drift Uruguay', initials: 'DUY' },
     map: { x: 0.2, y: 0.25 },
+    coords: { latitude: -34.7959, longitude: -55.9172 },
     past: true,
   },
 ];
