@@ -8,6 +8,7 @@ import { Icon, type IconName } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Button, Card } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { carTitle, useMyCars } from '@/services/cars';
 import { useCurrentUser } from '@/services/user';
 
 // TODO: todavía de prueba; "Encuentros" puede salir de attendance.myEvents y "Organizados" de events.listMine.
@@ -21,6 +22,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [alerts, setAlerts] = useState(true);
   const { user, isLoading, isGuest, isPublisher, signOut } = useCurrentUser();
+  const { cars } = useMyCars();
 
   if (isLoading) {
     return (
@@ -72,18 +74,25 @@ export default function ProfileScreen() {
         ))}
       </View>
 
-      <Card style={styles.car}>
-        <View style={styles.rowIcon}>
-          <Icon name="car" size={20} color={Colors.accent} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text variant="heading">Saveiro G5 1.6</Text>
-          <Text variant="caption" tone="secondary">
-            Mi garage
-          </Text>
-        </View>
-        <Icon name="chevron" size={18} color={Colors.textSecondary} />
-      </Card>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push('/garage')}
+        style={({ pressed }) => pressed && { opacity: 0.75 }}>
+        <Card style={styles.car}>
+          <View style={styles.rowIcon}>
+            <Icon name="car" size={20} color={Colors.accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text variant="heading" numberOfLines={1}>
+              {cars[0] ? carTitle(cars[0]) : 'Agregá tu auto'}
+            </Text>
+            <Text variant="caption" tone="secondary">
+              {cars.length > 1 ? `Mi garage · ${cars.length} autos` : 'Mi garage'}
+            </Text>
+          </View>
+          <Icon name="chevron" size={18} color={Colors.textSecondary} />
+        </Card>
+      </Pressable>
 
       <Card style={styles.list}>
         <Row icon="bell" label="Alertas de encuentros">

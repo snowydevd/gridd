@@ -8,11 +8,14 @@ import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Chip, Fade, SectionHeader, Tag, Wordmark } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
-import { categories, events, featuredEvent, upcomingEvents, type Category } from '@/data/events';
+import { categories, featuredEvent, upcomingEvents, type Category } from '@/data/events';
+import { useUpcomingEvents } from '@/services/events';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [category, setCategory] = useState<Category | null>(null);
+
+  const {events} = useUpcomingEvents() 
 
   const nearby = events
     .filter((e) => !e.past && e.id !== featuredEvent.id && e.distanceKm < 30)

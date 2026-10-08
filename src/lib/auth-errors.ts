@@ -1,5 +1,3 @@
-import type { ConvexError } from 'convex/values';
-
 import { TimeoutError } from '@/lib/with-timeout';
 
 export type PasswordFlow = 'signIn' | 'signUp' | 'reset' | 'reset-verification';
@@ -54,7 +52,7 @@ export function authErrorMessage(error: unknown, flow: PasswordFlow): string {
   if (error instanceof TimeoutError) return 'Está tardando demasiado. Revisá tu conexión y probá de nuevo.';
   // Errores nuestros (convex/lib/validation.ts): traen el mensaje listo.
   // Se chequea la forma y no `instanceof` por si hay más de una copia de `convex` en el bundle.
-  const data = (error as ConvexError<{ message?: unknown }> | null)?.data;
+  const data = (error as { data?: { message?: unknown } } | null)?.data;
   if (typeof data?.message === 'string') return data.message;
   const text = error instanceof Error ? error.message : String(error);
   return KNOWN.find((k) => k.match.test(text))?.message(flow) ?? FALLBACK[flow];
