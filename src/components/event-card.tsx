@@ -33,7 +33,7 @@ export function EventRow({ event, dimmed }: { event: MeetEvent; dimmed?: boolean
           {event.title}
         </Text>
         <Text variant="caption" tone="secondary" numberOfLines={1}>
-          {event.area} · {formatKm(event.distanceKm)}
+          {placeLine(event)}
         </Text>
       </View>
     </Pressable>
@@ -73,7 +73,12 @@ export function openEvent(id: string) {
 }
 
 export function formatKm(km: number) {
-  return km < 10 ? `${km.toString().replace('.', ',')} km` : `${Math.round(km)} km`;
+  return km < 10 ? `${km.toFixed(1).replace('.', ',')} km` : `${Math.round(km)} km`;
+}
+
+/** "Pocitos · 1,4 km", o sólo el lugar si no se sabe la distancia. */
+export function placeLine(event: MeetEvent) {
+  return event.distanceKm === undefined ? event.area : `${event.area} · ${formatKm(event.distanceKm)}`;
 }
 
 const styles = StyleSheet.create({

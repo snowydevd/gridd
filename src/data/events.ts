@@ -7,7 +7,8 @@ export const categories: Category[] = ['JDM', 'Clásicos', 'Drift', 'Tuning', 'E
 export type MeetEvent = {
   id: string;
   title: string;
-  category: Category;
+  /** Etiqueta de la categoría (`Category` en los datos de ejemplo, `KIND_LABELS` en los de Convex). */
+  category: Category | string;
   /** Short day label shown on cards: "Hoy", "Sáb 15", "Oct 28"... */
   day: string;
   /** Long date for the detail screen. */
@@ -17,7 +18,8 @@ export type MeetEvent = {
   isToday?: boolean;
   place: string;
   area: string;
-  distanceKm: number;
+  /** Sin la ubicación del usuario no se puede calcular. */
+  distanceKm?: number;
   going: number;
   image: ImageSource;
   description: string;
@@ -161,7 +163,7 @@ export const events: MeetEvent[] = [
 ];
 
 export const featuredEvent = events[0];
-export const nearbyEvents = events.filter((e) => !e.past && e.distanceKm < 30).slice(1, 4);
+export const nearbyEvents = events.filter((e) => !e.past && (e.distanceKm ?? Infinity) < 30).slice(1, 4);
 export const upcomingEvents = events.filter((e) => e.id === 'expo-fierros' || e.id === 'euro-meet');
 
 export function getEvent(id: string) {

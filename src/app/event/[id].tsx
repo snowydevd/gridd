@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Linking, Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatKm } from '@/components/event-card';
@@ -10,13 +10,26 @@ import { Text } from '@/components/text';
 import { Button, Fade, IconButton, Tag } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { getEvent } from '@/data/events';
+import { toCardEvent, useEventBySlug } from '@/services/events';
+import { useLastKnownLocation } from '@/services/location';
 import { useSaved } from '@/state/saved';
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const event = getEvent(id);
+  // Los eventos de Convex llegan por slug; los de ejemplo (mapa, Guardados) siguen en src/data/events.ts.
+  const remote = useEventBySlug(id);
+  const location = useLastKnownLocation();
+  const event = remote ? toCardEvent(remote, location) : getEvent(id);
   const insets = useSafeAreaInsets();
   const { isSaved, toggle } = useSaved();
+
+  if (remote === undefined && !event) {
+    return (
+      <View style={[styles.screen, styles.missing]}>
+        <ActivityIndicator color={Colors.accent} />
+      </View>
+    );
+  }
 
   if (!event) {
     return (
@@ -60,7 +73,7 @@ export default function EventDetailScreen() {
           <View style={styles.facts}>
             <Fact icon="calendar" title={event.date} subtitle={hours} />
             <View style={styles.factDivider} />
-            <Fact icon="pin" title={event.place} subtitle={`${event.area} · a ${formatKm(event.distanceKm)}`} />
+            <Fact icon="pin" title={event.place} subtitle={event.distanceKm === undefined ? event.area : `${event.area} · a ${formatKm(event.distanceKm)}`} />
           </View>
 
           <StylizedMap style={styles.map} pins={[{ id: event.id, x: 0.5, y: 0.5 }]} selectedId={event.id} />
