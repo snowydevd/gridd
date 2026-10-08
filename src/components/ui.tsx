@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Platform, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Icon, type IconName } from '@/components/icon';
 import { Text } from '@/components/text';
@@ -24,6 +24,8 @@ type ButtonProps = {
   icon?: IconName;
   iconPosition?: 'start' | 'end';
   disabled?: boolean;
+  /** Muestra un spinner en lugar del ícono y bloquea el botón. */
+  loading?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -34,30 +36,38 @@ export function Button({
   icon,
   iconPosition = 'start',
   disabled,
+  loading,
   style,
 }: ButtonProps) {
   const fg = variant === 'primary' ? Colors.onAccent : Colors.text;
-  const iconEl = icon ? <Icon name={icon} size={18} color={disabled ? Colors.textDisabled : fg} /> : null;
+  // Mientras carga mantiene el color normal: el spinner ya dice que no se puede tocar.
+  const dimmed = disabled && !loading;
+  const iconEl = loading ? (
+    <ActivityIndicator size="small" color={fg} />
+  ) : icon ? (
+    <Icon name={icon} size={18} color={dimmed ? Colors.textDisabled : fg} />
+  ) : null;
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       onPress={onPress}
-      disabled={disabled}
+      disabled={disabled || loading}
       style={({ pressed }) => [
         styles.button,
         variant === 'primary' && styles.buttonPrimary,
         variant === 'secondary' && styles.buttonSecondary,
-        disabled && styles.buttonDisabled,
+        dimmed && styles.buttonDisabled,
         pressed && styles.pressed,
         style,
       ]}>
-      {iconPosition === 'start' && iconEl}
+      {(iconPosition === 'start' || loading) && iconEl}
       <Text
         variant="heading"
-        style={{ color: disabled ? Colors.textDisabled : fg, fontSize: 16 }}>
+        style={{ color: dimmed ? Colors.textDisabled : fg, fontSize: 16 }}>
         {label}
       </Text>
-      {iconPosition === 'end' && iconEl}
+      {iconPosition === 'end' && !loading && iconEl}
     </Pressable>
   );
 }

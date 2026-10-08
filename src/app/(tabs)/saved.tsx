@@ -9,6 +9,7 @@ import { Text } from '@/components/text';
 import { Button } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { events } from '@/data/events';
+import { useCurrentUser } from '@/services/user';
 import { useSaved } from '@/state/saved';
 
 type Segment = 'saved' | 'mine';
@@ -81,6 +82,7 @@ function SegmentButton({ label, active, onPress }: { label: string; active: bool
 
 function EmptyState({ segment }: { segment: Segment }) {
   const mine = segment === 'mine';
+  const { isPublisher } = useCurrentUser();
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIcon}>
@@ -90,7 +92,7 @@ function EmptyState({ segment }: { segment: Segment }) {
       <Text tone="secondary" style={styles.emptyText}>
         {mine ? 'Armá tu primer encuentro en menos de un minuto.' : 'Guardá encuentros para tenerlos a mano.'}
       </Text>
-      {mine && (
+      {mine && isPublisher && (
         <Button label="Publicar evento" icon="plus" onPress={() => router.push('/publish')} style={styles.emptyCta} />
       )}
     </View>

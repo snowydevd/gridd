@@ -22,6 +22,7 @@ import type * as lib_redirect from "../lib/redirect.js";
 import type * as lib_slug from "../lib/slug.js";
 import type * as lib_validation from "../lib/validation.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as lib_vehicleCatalog from "../lib/vehicleCatalog.js";
 import type * as publisherRequests from "../publisherRequests.js";
 import type * as users from "../users.js";
 
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   "lib/slug": typeof lib_slug;
   "lib/validation": typeof lib_validation;
   "lib/validators": typeof lib_validators;
+  "lib/vehicleCatalog": typeof lib_vehicleCatalog;
   publisherRequests: typeof publisherRequests;
   users: typeof users;
 }>;

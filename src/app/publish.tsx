@@ -1,5 +1,5 @@
 import { Image, type ImageSource } from 'expo-image';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import {
   Alert,
@@ -19,6 +19,7 @@ import { Text } from '@/components/text';
 import { Button, Chip, Fade, IconButton, Tag } from '@/components/ui';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import { categories, type Category } from '@/data/events';
+import { useCurrentUser } from '@/services/user';
 
 const STEPS = ['Evento', 'Cuándo', 'Dónde', 'Portada'] as const;
 const REVIEW = STEPS.length;
@@ -53,7 +54,16 @@ function formatDay(d: Date) {
   return `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]}`;
 }
 
+// Sólo admins y publishers pueden publicar (el backend lo exige en events.create);
+// esto cubre a quien llegue por deep link.
 export default function PublishScreen() {
+  const { isLoading, isPublisher } = useCurrentUser();
+  if (isLoading) return null;
+  if (!isPublisher) return <Redirect href="/" />;
+  return <PublishForm />;
+}
+
+function PublishForm() {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState(0);
 

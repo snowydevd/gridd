@@ -1,14 +1,16 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@/components/icon';
 import { Text } from '@/components/text';
-import { Card } from '@/components/ui';
+import { Button, Card } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { useCurrentUser } from '@/services/user';
 
+// TODO: todavía de prueba; "Encuentros" puede salir de attendance.myEvents y "Organizados" de events.listMine.
 const stats = [
   { value: 28, label: 'Encuentros' },
   { value: 4, label: 'Organizados' },
@@ -18,19 +20,44 @@ const stats = [
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [alerts, setAlerts] = useState(true);
+  const { user, isLoading, isGuest, isPublisher, signOut } = useCurrentUser();
+
+  if (isLoading) {
+    return (
+      <View style={[styles.screen, styles.centered]}>
+        <ActivityIndicator color={Colors.accent} />
+      </View>
+    );
+  }
+
+  if (isGuest || !user) {
+    return (
+      <View style={[styles.screen, styles.centered, styles.guest, { paddingTop: insets.top }]}>
+        <Text variant="title">Estás como invitado</Text>
+        <Text tone="secondary" style={styles.guestText}>
+          Creá una cuenta para anotarte a encuentros y publicar los tuyos.
+        </Text>
+        <Button label="Iniciar sesión o registrarme" onPress={() => router.push('/login')} style={styles.guestButton} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.xl }]}>
       <View style={styles.identity}>
-        <Image source={require('@/assets/images/meets/avatar.jpg')} style={styles.avatar} contentFit="cover" />
+        <Image
+          source={user.image ? { uri: user.image } : require('@/assets/images/meets/avatar.jpg')}
+          style={styles.avatar}
+          contentFit="cover"
+        />
         <View style={styles.nameRow}>
-          <Text variant="title">Martín Méndez</Text>
-          <Icon name="verified" size={18} color={Colors.accent} />
+          <Text variant="title">{user.name ?? 'Sin nombre'}</Text>
+          {isPublisher && <Icon name="verified" size={18} color={Colors.accent} />}
         </View>
         <Text variant="label" tone="secondary">
-          @tincho_mvd · Montevideo
+          {user.email}
         </Text>
       </View>
 
@@ -68,7 +95,7 @@ export default function ProfileScreen() {
           />
         </Row>
         <Row icon="pin" label="Ubicación" value="25 km" />
-        <Row icon="logout" label="Cerrar sesión" destructive onPress={() => router.push('/login')} last />
+        <Row icon="logout" label="Cerrar sesión" destructive onPress={() => void signOut()} last />
       </Card>
     </ScrollView>
   );
@@ -109,6 +136,10 @@ function Row({ icon, label, value, destructive, last, onPress, children }: RowPr
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.canvas },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxl, gap: Spacing.xl },
+  centered: { alignItems: 'center', justifyContent: 'center' },
+  guest: { gap: Spacing.md, paddingHorizontal: Spacing.lg },
+  guestText: { textAlign: 'center' },
+  guestButton: { alignSelf: 'stretch', marginTop: Spacing.md },
   identity: { alignItems: 'center', gap: Spacing.xs },
   avatar: {
     width: 96,

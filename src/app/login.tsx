@@ -2,6 +2,7 @@ import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Button, Fade, Wordmark } from '@/components/ui';
 import { Colors, Spacing } from '@/constants/theme';
+import { TimeoutError, withTimeout } from '@/lib/with-timeout';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import * as Linking from 'expo-linking';
@@ -33,11 +34,14 @@ export default function LoginScreen() {
 
       const code = Linking.parse(result.url).queryParams?.code;
       if (typeof code !== 'string') throw new Error('Google no devolvió el código.');
-      await signIn('google', { code });
+      await withTimeout(signIn('google', { code }));
       enter();
     } catch (error) {
-      console.error(error);
-      Alert.alert('No pudimos entrar con Google', 'Probá de nuevo en un rato.');
+      if (__DEV__) console.log('[auth] google falló:', error);
+      Alert.alert(
+        'No pudimos entrar con Google',
+        error instanceof TimeoutError ? 'Está tardando demasiado. Revisá tu conexión.' : 'Probá de nuevo en un rato.',
+      );
     } finally {
       setBusy(false);
     }
@@ -57,8 +61,13 @@ export default function LoginScreen() {
         </Text>
 
         <View style={styles.actions}>
-          <Button label="Continuar con email" icon="mail" onPress={enter} />
-          <Button label="Continuar con Google" variant="secondary" onPress={signInWithGoogle} disabled={busy} />
+          <Button label="Continuar con email" icon="mail" onPress={() => router.push('/email')} />
+          <Button
+            label={busy ? 'Conectando con Google…' : 'Continuar con Google'}
+            variant="secondary"
+            onPress={signInWithGoogle}
+            loading={busy}
+          />
           <Pressable onPress={enter} style={styles.skip} hitSlop={8}>
             <Text variant="label" tone="secondary">
               Explorar sin cuenta

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, type IconName } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Colors, TabBarHeight } from '@/constants/theme';
+import { useCurrentUser } from '@/services/user';
 
 const tabs: Record<string, { label: string; icon: IconName }> = {
   index: { label: 'Inicio', icon: 'home' },
@@ -17,6 +18,7 @@ const tabs: Record<string, { label: string; icon: IconName }> = {
 
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { isPublisher } = useCurrentUser();
 
   return (
     <View style={[styles.bar, { paddingBottom: insets.bottom, height: TabBarHeight + insets.bottom }]}>
@@ -32,8 +34,8 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 
         return (
           <Fragment key={route.key}>
-            {/* The publish action sits in the middle of the four tabs. */}
-            {index === 2 && <PublishButton />}
+            {/* The publish action sits in the middle of the four tabs; only admins and publishers see it. */}
+            {index === 2 && isPublisher && <PublishButton />}
             <Pressable
               accessibilityRole="tab"
               accessibilityState={{ selected: focused }}

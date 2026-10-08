@@ -21,6 +21,15 @@ export default defineSchema({
     .index("email", ["email"])
     .index("phone", ["phone"]),
 
+  cars: defineTable({
+    userId: v.id("users"),
+    make: v.string(),
+    model: v.string(),
+    version: v.optional(v.string()),
+    year: v.optional(v.number()),
+    isModified: v.optional(v.boolean())
+  }).index("by_user", ["userId"]),
+
   publisherRequests: defineTable({
     userId: v.id("users"),
     message: v.string(),

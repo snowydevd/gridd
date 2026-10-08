@@ -56,6 +56,7 @@ export default function RootLayout() {
             <Stack.Screen name="event/[id]" />
             <Stack.Screen name="publish" options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="login" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+            <Stack.Screen name="email" />
           </Stack>
         </SavedProvider>
       </ThemeProvider>
