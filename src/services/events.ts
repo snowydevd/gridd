@@ -1,135 +1,250 @@
-import type { MeetEvent } from "@/data/events";
-import { api } from "@/lib/convex";
-import { usePaginatedQuery, useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
+import { paginationOptsValidator } from "convex/server";
+import { v } from "convex/values";
+import type { Doc, Id } from "./_generated/dataModel";
+import { type MutationCtx, mutation, query } from "./_generated/server";
+import { currentUser, requireAdmin, requirePublisher, roleOf } from "./lib/auth";
+import { fail } from "./lib/errors";
+import { toEventView } from "./lib/eventView";
+import { slugBase, uniqueSlug } from "./lib/slug";
+import { DAY, val
+    idateEventInput } from "./lib/validation";
+import { eventKind } from "./lib/validators";
 
-const PAGE_SIZE = 5
+const eventFields = {
+  title: v.string(),
+  description: v.string(),
+  kind: eventKind,
+  startsAt: v.number(),
+  endsAt: v.number(),
+  placeName: v.string(),
+  lat: v.number(),
+  lon: v.number(),
+};
 
-/** Próximos eventos paginados. `kind` filtra en el servidor; `pageSize` es cuántos trae por página. */
-export function useUpcomingEvents({ kind, pageSize = PAGE_SIZE }: { kind?: EventKind; pageSize?: number } = {}){
-    const {results, status, loadMore} = usePaginatedQuery(
-        api.events.listUpcoming, 
-        kind ? { kind } : {}, 
-        { initialNumItems: pageSize }
-    )
+async function assertImageExists(
+  ctx: MutationCtx,
+  imageId: Id<"_storage"> | undefined,
+  eventId?: Id<"events">,
+) {
+  if (!imageId) return;
+  if (!(await ctx.db.system.get(imageId))) {
+    fail("INVALID", "La imagen no existe. Volvé a subirla.");
+  }
+  // Una imagen ya usada por otro evento no se puede tomar: al reemplazarla se borraría la ajena.
+  const owner = await ctx.db
+    .query("events")
+    .withIndex("by_image", (q) => q.eq("imageId", imageId))
+    .first();
+  if (owner && owner._id !== eventId) fail("FORBIDDEN", "Esa imagen pertenece a otro evento.");
+}
 
-    return{
-        events: results ?? [],
-        isLoading: status === "LoadingFirstPage",
-        canLoadMore: status === "CanLoadMore",
-        loadMore: () => loadMore(pageSize)
+async function getEventOrFail(ctx: MutationCtx, id: Id<"events">) {
+  const event = await ctx.db.get(id);
+  if (!event) fail("NOT_FOUND", "El evento no existe.");
+  return event;
+}
+
+function assertOrganizer(user: Doc<"users">, event: Doc<"events">) {
+  if (event.organizerId !== user._id) {
+    fail("FORBIDDEN", "Sólo el organizador puede modificar este evento.");
+  }
+}
+
+export const create = mutation({
+  args: { ...eventFields, imageId: v.optional(v.id("_storage")) },
+  handler: async (ctx, args) => {
+    const user = await requirePublisher(ctx);
+    const now = Date.now();
+    const input = validateEventInput(args, now, { dateChanged: true });
+    await assertImageExists(ctx, input.imageId);
+    const slug = await uniqueSlug(ctx, slugBase(input.title, input.startsAt));
+    const id = await ctx.db.insert("events", {
+      ...input,
+      slug,
+      organizerId: user._id,
+      status: "published",
+      attendeeCount: 0,
+      updatedAt: now,
+    });
+    return { id, slug };
+  },
+});
+
+export const update = mutation({
+  args: {
+    id: v.id("events"),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
+    kind: v.optional(eventKind),
+    startsAt: v.optional(v.number()),
+    endsAt: v.optional(v.number()),
+    placeName: v.optional(v.string()),
+    lat: v.optional(v.number()),
+    lon: v.optional(v.number()),
+    imageId: v.optional(v.id("_storage")),
+    removeImage: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { id, removeImage, imageId, ...patch }) => {
+    const user = await requirePublisher(ctx);
+    const event = await getEventOrFail(ctx, id);
+    assertOrganizer(user, event);
+    if (event.status !== "published") {
+      fail("INVALID", "No se puede editar un evento cancelado u oculto.");
     }
-}
 
-/** Un evento por slug (`null` si no existe, `undefined` mientras carga). */
-export function useEventBySlug(slug: string | undefined) {
-    return useQuery(api.events.getBySlug, slug ? { slug } : "skip");
-}   
-
-
-
-
-
-// ---------- Adaptador Convex → tarjetas ----------
-
-export type EventView = FunctionReturnType<typeof api.events.listUpcoming>["page"][number];
-export type EventKind = EventView["kind"];
-
-/** Etiquetas en español de los `kind` del backend (convex/lib/validators.ts), en el orden de los chips. */
-export const KIND_LABELS: Record<EventKind, string> = {
-    junada: "Junada",
-    rodada: "Rodada",
-    cars_and_coffee: "Cars & Coffee",
-    expo: "Exposición",
-    clasicos: "Clásicos",
-    jdm: "JDM",
-    tuning: "Tuning",
-    "4x4": "4x4",
-    motos: "Motos",
-    pista: "Pista",
-    otro: "Otro",
-};
-export const EVENT_KINDS = Object.keys(KIND_LABELS) as EventKind[];
-
-const DAY_SHORT = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-const DAY_LONG = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-
-const pad = (n: number) => String(n).padStart(2, "0");
-const sameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-/** "Hoy" / "Mañana" / "Sáb 15" para las tarjetas, y la fecha larga para el detalle. */
-function formatWhen(startsAt: number, now: Date) {
-    const start = new Date(startsAt);
-    const tomorrow = new Date(now);
-    tomorrow.setDate(now.getDate() + 1);
-    const isToday = sameDay(start, now);
-    const long = `${DAY_LONG[start.getDay()]} ${start.getDate()} de ${MONTHS[start.getMonth()]}`;
-    return {
-        isToday,
-        day: isToday ? "Hoy" : sameDay(start, tomorrow) ? "Mañana" : `${DAY_SHORT[start.getDay()]} ${start.getDate()}`,
-        date: isToday ? `Hoy, ${long}` : capitalize(long),
+    const definedPatch = Object.fromEntries(
+      Object.entries(patch).filter(([, value]) => value !== undefined),
+    ) as Partial<typeof patch>;
+    const merged = {
+      title: event.title,
+      description: event.description,
+      kind: event.kind,
+      startsAt: event.startsAt,
+      endsAt: event.endsAt,
+      placeName: event.placeName,
+      lat: event.lat,
+      lon: event.lon,
+      ...definedPatch,
     };
-}
+    const dateChanged =
+      merged.startsAt !== event.startsAt || merged.endsAt !== event.endsAt;
+    const input = validateEventInput(merged, Date.now(), { dateChanged });
 
-const formatTime = (ms: number) => {
-    const d = new Date(ms);
-    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
+    let nextImage = event.imageId;
+    if (removeImage) nextImage = undefined;
+    if (imageId !== undefined) {
+      await assertImageExists(ctx, imageId, id);
+      nextImage = imageId;
+    }
+    if (event.imageId && event.imageId !== nextImage) {
+      await ctx.storage.delete(event.imageId);
+    }
 
-function initials(name: string) {
-    const words = name.trim().split(/\s+/).filter(Boolean);
-    return (words.length > 1 ? words.slice(0, 3).map((w) => w[0]) : [name.slice(0, 2)]).join("").toUpperCase();
-}
+    await ctx.db.patch(id, { ...input, imageId: nextImage, updatedAt: Date.now() });
+    return null;
+  },
+});
 
-type LatLng = { latitude: number; longitude: number };
+export const cancel = mutation({
+  args: { id: v.id("events") },
+  handler: async (ctx, { id }) => {
+    const user = await requirePublisher(ctx);
+    const event = await getEventOrFail(ctx, id);
+    assertOrganizer(user, event);
+    if (event.status !== "published") {
+      fail("INVALID", "Sólo se puede cancelar un evento publicado.");
+    }
+    await ctx.db.patch(id, { status: "cancelled", updatedAt: Date.now() });
+    return null;
+  },
+});
 
-/** Distancia en km entre dos puntos (fórmula de haversine). */
-function distanceKm(a: LatLng, b: LatLng) {
-    const rad = (deg: number) => (deg * Math.PI) / 180;
-    const dLat = rad(b.latitude - a.latitude);
-    const dLon = rad(b.longitude - a.longitude);
-    const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.latitude)) * Math.cos(rad(b.latitude)) * Math.sin(dLon / 2) ** 2;
-    return 2 * 6371 * Math.asin(Math.sqrt(h));
-}
+export const hide = mutation({
+  args: { id: v.id("events") },
+  handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
+    await getEventOrFail(ctx, id);
+    await ctx.db.patch(id, { status: "hidden", updatedAt: Date.now() });
+    return null;
+  },
+});
 
-// Área que cubre el mapa estilizado de web (Montevideo + Costa de Oro), para ubicar los pines en 0–1.
-const WEB_MAP = { minLat: -34.96, maxLat: -34.76, minLon: -56.16, maxLon: -55.92 };
-const clamp01 = (n: number) => Math.min(0.95, Math.max(0.05, n));
+export const unhide = mutation({
+  args: { id: v.id("events") },
+  handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
+    const event = await getEventOrFail(ctx, id);
+    if (event.status !== "hidden") fail("INVALID", "El evento no está oculto.");
+    await ctx.db.patch(id, { status: "published", updatedAt: Date.now() });
+    return null;
+  },
+});
 
-const DEFAULT_EVENT_IMAGE = require("@/assets/images/meets/midnight-rambla.jpg");
+const MAX_IN_BOUNDS = 200;
 
-/**
- * Convierte un evento de Convex a la forma que usan las tarjetas (`MeetEvent`).
- * `userLocation` es opcional: sin ella no se calcula la distancia y las tarjetas no la muestran.
- */
-export function toCardEvent(event: EventView, userLocation?: LatLng | null, now = new Date()): MeetEvent {
-    const when = formatWhen(event.startsAt, now);
-    const coords = { latitude: event.lat, longitude: event.lon };
-    const organizerName = event.organizer?.name ?? "Organizador";
+export const listUpcoming = query({
+  args: { paginationOpts: paginationOptsValidator, kind: v.optional(eventKind) },
+  handler: async (ctx, { paginationOpts, kind }) => {
+    const now = Date.now();
+    const result = await ctx.db
+      .query("events")
+      .withIndex("by_status_startsAt", (q) =>
+        q.eq("status", "published").gte("startsAt", now - DAY),
+      )
+      .filter((q) =>
+        kind
+          ? q.and(q.gte(q.field("endsAt"), now), q.eq(q.field("kind"), kind))
+          : q.gte(q.field("endsAt"), now),
+      )
+      .paginate(paginationOpts);
     return {
-        // El slug es lo que va a usar el detalle (`events.getBySlug`).
-        id: event.slug,
-        title: event.title,
-        category: KIND_LABELS[event.kind],
-        ...when,
-        time: formatTime(event.startsAt),
-        endTime: formatTime(event.endsAt),
-        // Convex guarda un solo texto de lugar.
-        place: event.placeName,
-        area: event.placeName,
-        distanceKm: userLocation ? distanceKm(userLocation, coords) : undefined,
-        going: event.attendeeCount,
-        image: event.imageUrl ? { uri: event.imageUrl } : DEFAULT_EVENT_IMAGE,
-        description: event.description,
-        organizer: { name: organizerName, initials: initials(organizerName) },
-        coords,
-        map: {
-            x: clamp01((event.lon - WEB_MAP.minLon) / (WEB_MAP.maxLon - WEB_MAP.minLon)),
-            y: clamp01((WEB_MAP.maxLat - event.lat) / (WEB_MAP.maxLat - WEB_MAP.minLat)),
-        },
-        past: event.endsAt < now.getTime(),
+      ...result,
+      page: await Promise.all(result.page.map((event) => toEventView(ctx, event))),
     };
-}
+  },
+});
+
+export const listInBounds = query({
+  args: {
+    minLat: v.number(),
+    maxLat: v.number(),
+    minLon: v.number(),
+    maxLon: v.number(),
+    from: v.number(),
+    to: v.number(),
+  },
+  handler: async (ctx, args) => {
+    if (args.minLat > args.maxLat || args.minLon > args.maxLon) {
+      fail("INVALID", "El área del mapa no es válida.");
+    }
+    if (args.to < args.from || args.to - args.from > 90 * DAY) {
+      fail("INVALID", "El rango de fechas tiene que ser de hasta 90 días.");
+    }
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_status_startsAt", (q) =>
+        q.eq("status", "published").gte("startsAt", args.from).lte("startsAt", args.to),
+      )
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("lat"), args.minLat),
+          q.lte(q.field("lat"), args.maxLat),
+          q.gte(q.field("lon"), args.minLon),
+          q.lte(q.field("lon"), args.maxLon),
+        ),
+      )
+      .take(MAX_IN_BOUNDS);
+    return await Promise.all(events.map((event) => toEventView(ctx, event)));
+  },
+});
+
+export const getBySlug = query({
+  args: { slug: v.string() },
+  handler: async (ctx, { slug }) => {
+    const event = await ctx.db
+      .query("events")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .first();
+    if (!event) return null;
+    if (event.status === "hidden") {
+      const viewer = await currentUser(ctx);
+      const canSee =
+        viewer && (viewer._id === event.organizerId || roleOf(viewer) === "admin");
+      if (!canSee) return null;
+    }
+    return await toEventView(ctx, event);
+  },
+});
+
+export const listMine = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requirePublisher(ctx);
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_organizer", (q) => q.eq("organizerId", user._id))
+      .order("desc")
+      .collect();
+    return await Promise.all(events.map((event) => toEventView(ctx, event)));
+  },
+});
