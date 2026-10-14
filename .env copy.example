@@ -5,4 +5,3 @@ EXPO_PUBLIC_CONVEX_SITE_URL=https://<deployment>.convex.site
 
 # Maps SDK for Android (Google Cloud). Sólo hace falta para development/production builds;
 # Expo Go trae su propia key. En EAS cargala con `bunx eas-cli env:create`.
-GOOGLE_MAPS_ANDROID_API_KEY=AIzaSyC79f-1utpig3cv4UB5Nj3L8H9u3D9Geec
