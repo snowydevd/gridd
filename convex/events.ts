@@ -161,6 +161,8 @@ export const unhide = mutation({
 
 const MAX_IN_BOUNDS = 200;
 
+
+
 export const listUpcoming = query({
   args: { paginationOpts: paginationOptsValidator, kind: v.optional(eventKind) },
   handler: async (ctx, { paginationOpts, kind }) => {

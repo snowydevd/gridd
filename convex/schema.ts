@@ -1,6 +1,7 @@
 import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { searchRadius } from "./lib/searchRadius";
 import { eventKind, eventStatus, requestStatus, role } from "./lib/validators";
 
 export default defineSchema({
@@ -16,6 +17,8 @@ export default defineSchema({
     phoneVerificationTime: v.optional(v.number()),
     isAnonymous: v.optional(v.boolean()),
     role: v.optional(role),
+    // Rango de "Cerca tuyo"; sin valor se usa DEFAULT_SEARCH_RADIUS.
+    searchRadius: v.optional(searchRadius),
     updatedAt: v.optional(v.number()),
   })
     .index("email", ["email"])
@@ -62,6 +65,13 @@ export default defineSchema({
     .index("by_image", ["imageId"]),
 
   attendances: defineTable({
+    userId: v.id("users"),
+    eventId: v.id("events"),
+  })
+    .index("by_event_user", ["eventId", "userId"])
+    .index("by_user", ["userId"]),
+
+  saves: defineTable({
     userId: v.id("users"),
     eventId: v.id("events"),
   })

@@ -3,6 +3,7 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import { currentUser, requireUser, roleOf } from "./lib/auth";
 import { fail } from "./lib/errors";
 import { validateName } from "./lib/validation";
+import { DEFAULT_SEARCH_RADIUS, searchRadius } from "./lib/searchRadius";
 import { role } from "./lib/validators";
 
 export const me = query({
@@ -16,6 +17,7 @@ export const me = query({
       email: user.email ?? null,
       image: user.image ?? null,
       role: roleOf(user),
+      searchRadius: user.searchRadius ?? DEFAULT_SEARCH_RADIUS,
     };
   },
 });
@@ -25,6 +27,15 @@ export const updateProfile = mutation({
   handler: async (ctx, { name }) => {
     const user = await requireUser(ctx);
     await ctx.db.patch(user._id, { name: validateName(name), updatedAt: Date.now() });
+    return null;
+  },
+});
+
+export const setSearchRadius = mutation({
+  args: { radius: searchRadius },
+  handler: async (ctx, { radius }) => {
+    const user = await requireUser(ctx);
+    await ctx.db.patch(user._id, { searchRadius: radius, updatedAt: Date.now() });
     return null;
   },
 });

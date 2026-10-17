@@ -12,7 +12,7 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { getEvent } from '@/data/events';
 import { toCardEvent, useEventBySlug } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
-import { useSaved } from '@/state/saved';
+import { useSaveToggle } from '@/services/saved';
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,7 +21,8 @@ export default function EventDetailScreen() {
   const location = useLastKnownLocation();
   const event = remote ? toCardEvent(remote, location) : getEvent(id);
   const insets = useSafeAreaInsets();
-  const { isSaved, toggle } = useSaved();
+  // Sólo los eventos de Convex se pueden guardar; los de ejemplo no tienen _id.
+  const { saved, toggle } = useSaveToggle(remote?._id);
 
   if (remote === undefined && !event) {
     return (
@@ -40,7 +41,6 @@ export default function EventDetailScreen() {
     );
   }
 
-  const saved = isSaved(event.id);
   const hours = event.endTime ? `${event.time} – ${event.endTime} hs` : `${event.time} hs`;
 
   const openDirections = () => {
@@ -114,13 +114,15 @@ export default function EventDetailScreen() {
       </View>
 
       <View style={[styles.actions, { paddingBottom: insets.bottom + Spacing.md }]}>
-        <IconButton
-          icon={saved ? 'bookmarkFill' : 'bookmark'}
-          label={saved ? 'Quitar de guardados' : 'Guardar'}
-          active={saved}
-          size={52}
-          onPress={() => toggle(event.id)}
-        />
+        {remote && (
+          <IconButton
+            icon={saved ? 'bookmarkFill' : 'bookmark'}
+            label={saved ? 'Quitar de guardados' : 'Guardar'}
+            active={saved}
+            size={52}
+            onPress={toggle}
+          />
+        )}
         <Button label="Cómo llegar" icon="navigate" onPress={openDirections} style={{ flex: 1 }} />
       </View>
     </View>

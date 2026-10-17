@@ -1,22 +1,22 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EventRow, EventTile, formatKm, openEvent, WhenLine } from '@/components/event-card';
 import { Icon } from '@/components/icon';
+import { RadiusOptions } from '@/components/radius-options';
 import { Text } from '@/components/text';
 import { Button, Chip, Fade, SectionHeader, Tag, Wordmark } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { KIND_LABELS, toCardEvent, useUpcomingEvents, type EventKind } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
+import { searchRadiusLabel, useSearchRadius, withinRadius } from '@/services/search-radius';
 import { useCurrentUser } from '@/services/user';
 
 /** Cuántos eventos trae Inicio de una vez: destacado + lista + carrusel. */
 const HOME_EVENTS = 20;
-/** Radio de "Cerca tuyo" cuando se conoce la ubicación del usuario. */
-const NEARBY_KM = 30;
 const LIST_SIZE = 3;
 
 export default function HomeScreen() {
@@ -24,6 +24,8 @@ export default function HomeScreen() {
   const [kind, setKind] = useState<EventKind | null>(null);
   const location = useLastKnownLocation();
   const { isPublisher } = useCurrentUser();
+  // Radio de "Cerca tuyo" cuando se conoce la ubicación; se elige acá arriba o en el perfil.
+  const { radius } = useSearchRadius();
   const { events, isLoading } = useUpcomingEvents({ pageSize: HOME_EVENTS });
 
   // `kind` va al lado de la tarjeta para filtrar con el valor del backend y no con la etiqueta.
@@ -36,7 +38,7 @@ export default function HomeScreen() {
   // Con ubicación: los cercanos, del más cerca al más lejos. Sin ubicación: los próximos por fecha.
   const listed = rest
     .filter((c) => !kind || c.kind === kind)
-    .filter((c) => !location || (c.card.distanceKm ?? Infinity) < NEARBY_KM)
+    .filter((c) => !location || withinRadius(c.card.distanceKm ?? Infinity, radius))
     .sort((a, b) => (location ? (a.card.distanceKm ?? 0) - (b.card.distanceKm ?? 0) : 0))
     .slice(0, LIST_SIZE);
   const listedIds = new Set(listed.map((c) => c.card.id));
@@ -49,10 +51,7 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Wordmark />
-        <Pressable style={styles.location} accessibilityRole="button" accessibilityLabel="Cambiar ciudad">
-          <Icon name="navigate" size={14} color={Colors.textSecondary} />
-          <Text variant="label">Montevideo</Text>
-        </Pressable>
+        <RadiusPill />
       </View>
 
       {isLoading ? (
@@ -140,6 +139,57 @@ export default function HomeScreen() {
   );
 }
 
+/** Cápsula con el rango de "Cerca tuyo"; al tocarla despliega las opciones debajo. */
+function RadiusPill() {
+  const { isSignedIn } = useCurrentUser();
+  const { radius, setRadius } = useSearchRadius();
+  const pill = useRef<View>(null);
+  // Posición del menú en pantalla (null = cerrado). Se mide al abrir para seguir a la cápsula aunque haya scroll.
+  const [menu, setMenu] = useState<{ top: number; right: number } | null>(null);
+
+  const open = () => {
+    if (!isSignedIn) {
+      router.push('/login');
+      return;
+    }
+    pill.current?.measureInWindow((x, y, width, height) => {
+      setMenu({ top: y + height + Spacing.sm, right: Spacing.lg });
+    });
+  };
+
+  return (
+    <>
+      <Pressable
+        ref={pill}
+        onPress={open}
+        style={({ pressed }) => [styles.location, pressed && { opacity: 0.75 }]}
+        accessibilityRole="button"
+        accessibilityLabel={`Rango de búsqueda: ${searchRadiusLabel(radius)}. Cambiar rango`}>
+        <Icon name="navigate" size={14} color={Colors.textSecondary} />
+        <Text variant="label">{searchRadiusLabel(radius)}</Text>
+      </Pressable>
+
+      <Modal visible={menu !== null} transparent animationType="fade" onRequestClose={() => setMenu(null)}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenu(null)} accessibilityLabel="Cerrar" />
+        {menu && (
+          <View style={[styles.radiusMenu, menu]}>
+            <Text variant="overline" tone="secondary" style={styles.radiusMenuTitle}>
+              Encuentros a menos de
+            </Text>
+            <RadiusOptions
+              value={radius}
+              onSelect={(option) => {
+                setRadius(option);
+                setMenu(null);
+              }}
+            />
+          </View>
+        )}
+      </Modal>
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.canvas },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxl },
@@ -159,6 +209,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
+  radiusMenu: {
+    position: 'absolute',
+    width: 240,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xs,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  radiusMenuTitle: { marginBottom: Spacing.xs },
   hero: {
     height: 380,
     borderRadius: Radius.xl,

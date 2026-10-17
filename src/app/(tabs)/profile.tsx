@@ -1,28 +1,38 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@/components/icon';
+import { RadiusOptions } from '@/components/radius-options';
 import { Text } from '@/components/text';
 import { Button, Card } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { carTitle, useMyCars } from '@/services/cars';
-import { useCurrentUser } from '@/services/user';
+import { useSavedEvents } from '@/services/saved';
+import { searchRadiusLabel, useSearchRadius } from '@/services/search-radius';
+import { useCurrentUser, useUserMeets } from '@/services/user';
 
 // TODO: todavía de prueba; "Encuentros" puede salir de attendance.myEvents y "Organizados" de events.listMine.
-const stats = [
-  { value: 28, label: 'Encuentros' },
-  { value: 4, label: 'Organizados' },
-  { value: 12, label: 'Guardados' },
-];
+
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [alerts, setAlerts] = useState(true);
   const { user, isLoading, isGuest, isPublisher, signOut } = useCurrentUser();
+  const {attended, organized} = useUserMeets()
+  const { events: savedEvents } = useSavedEvents();
+
   const { cars } = useMyCars();
+  const { radius, setRadius } = useSearchRadius();
+  const [radiusOpen, setRadiusOpen] = useState(false);
+
+  const stats = [
+    { value: attended, label: 'Encuentros' },
+    { value: organized, label: 'Organizados' },
+    { value: savedEvents.length, label: 'Guardados' },
+  ];
 
   if (isLoading) {
     return (
@@ -63,7 +73,7 @@ export default function ProfileScreen() {
         </Text>
       </View>
 
-      <View style={styles.stats}>
+    <View style={styles.stats}>
         {stats.map((s, i) => (
           <View key={s.label} style={[styles.stat, i > 0 && styles.statDivider]}>
             <Text variant="title">{s.value}</Text>
@@ -95,15 +105,31 @@ export default function ProfileScreen() {
       </Pressable>
 
       <Card style={styles.list}>
-        <Row icon="bell" label="Alertas de encuentros">
+        {/* <Row icon="bell" label="Alertas de encuentros">
           <Switch
             value={alerts}
             onValueChange={setAlerts}
             trackColor={{ true: Colors.accent, false: Colors.raised }}
             thumbColor={alerts ? Colors.onAccent : Colors.textSecondary}
           />
-        </Row>
-        <Row icon="pin" label="Ubicación" value="25 km" />
+        </Row> */}
+        <Row
+          icon="pin"
+          label="Ubicación"
+          value={searchRadiusLabel(radius)}
+          expanded={radiusOpen}
+          onPress={() => setRadiusOpen((open) => !open)}
+        />
+        {radiusOpen && (
+          <RadiusOptions
+            value={radius}
+            onSelect={(option) => {
+              setRadius(option);
+              setRadiusOpen(false);
+            }}
+            optionStyle={styles.radiusOption}
+          />
+        )}
         <Row icon="logout" label="Cerrar sesión" destructive onPress={() => void signOut()} last />
       </Card>
     </ScrollView>
@@ -116,11 +142,13 @@ type RowProps = {
   value?: string;
   destructive?: boolean;
   last?: boolean;
+  /** Para filas que despliegan opciones: gira el chevron hacia abajo. */
+  expanded?: boolean;
   onPress?: () => void;
   children?: React.ReactNode;
 };
 
-function Row({ icon, label, value, destructive, last, onPress, children }: RowProps) {
+function Row({ icon, label, value, destructive, last, expanded, onPress, children }: RowProps) {
   const color = destructive ? Colors.error : Colors.text;
   return (
     <Pressable
@@ -137,7 +165,11 @@ function Row({ icon, label, value, destructive, last, onPress, children }: RowPr
             {value}
           </Text>
         ) : null)}
-      {!children && !destructive && <Icon name="chevron" size={18} color={Colors.textSecondary} />}
+      {!children && !destructive && (
+        <View style={expanded && { transform: [{ rotate: '90deg' }] }}>
+          <Icon name="chevron" size={18} color={Colors.textSecondary} />
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -175,4 +207,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, minHeight: 60 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
   rowLabel: { flex: 1 },
+  // Sangría alineada con el texto de las filas; el borde inferior cierra la última opción antes de "Cerrar sesión".
+  radiusOption: { paddingLeft: Spacing.xl + Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.border },
 });

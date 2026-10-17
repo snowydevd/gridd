@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EventRow } from '@/components/event-card';
@@ -8,18 +8,20 @@ import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Button } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
-import { events } from '@/data/events';
+import { toCardEvent } from '@/services/events';
+import { useLastKnownLocation } from '@/services/location';
+import { useSavedEvents } from '@/services/saved';
 import { useCurrentUser } from '@/services/user';
-import { useSaved } from '@/state/saved';
 
 type Segment = 'saved' | 'mine';
 
 export default function SavedScreen() {
   const insets = useSafeAreaInsets();
-  const { saved } = useSaved();
+  const { events, isLoading } = useSavedEvents();
+  const location = useLastKnownLocation();
   const [segment, setSegment] = useState<Segment>('saved');
 
-  const list = segment === 'saved' ? events.filter((e) => saved.has(e.id)) : [];
+  const list = segment === 'saved' ? events.map((e) => toCardEvent(e, location)) : [];
   const upcoming = list.filter((e) => !e.past);
   const past = list.filter((e) => e.past);
 
@@ -36,7 +38,9 @@ export default function SavedScreen() {
         <SegmentButton label="Mis eventos" active={segment === 'mine'} onPress={() => setSegment('mine')} />
       </View>
 
-      {list.length === 0 ? (
+      {segment === 'saved' && isLoading ? (
+        <ActivityIndicator color={Colors.accent} style={styles.loading} />
+      ) : list.length === 0 ? (
         <EmptyState segment={segment} />
       ) : (
         <>
@@ -82,7 +86,8 @@ function SegmentButton({ label, active, onPress }: { label: string; active: bool
 
 function EmptyState({ segment }: { segment: Segment }) {
   const mine = segment === 'mine';
-  const { isPublisher } = useCurrentUser();
+  const { isPublisher, isGuest } = useCurrentUser();
+  const guest = !mine && isGuest;
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIcon}>
@@ -90,8 +95,15 @@ function EmptyState({ segment }: { segment: Segment }) {
       </View>
       <Text variant="heading">{mine ? 'Todavía no publicaste nada' : 'Nada guardado'}</Text>
       <Text tone="secondary" style={styles.emptyText}>
-        {mine ? 'Armá tu primer encuentro en menos de un minuto.' : 'Guardá encuentros para tenerlos a mano.'}
+        {mine
+          ? 'Armá tu primer encuentro en menos de un minuto.'
+          : guest
+            ? 'Entrá a tu cuenta para guardar encuentros.'
+            : 'Guardá encuentros para tenerlos a mano.'}
       </Text>
+      {guest && (
+        <Button label="Iniciar sesión" onPress={() => router.push('/login')} style={styles.emptyCta} />
+      )}
       {mine && isPublisher && (
         <Button label="Publicar evento" icon="plus" onPress={() => router.push('/publish')} style={styles.emptyCta} />
       )}
@@ -121,6 +133,7 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: Colors.raised },
   section: { marginTop: Spacing.xl },
   sectionLabel: { marginBottom: Spacing.xs },
+  loading: { paddingTop: 80 },
   empty: { alignItems: 'center', paddingTop: 80, gap: Spacing.sm },
   emptyIcon: {
     width: 64,

@@ -14,7 +14,6 @@ import { useEffect } from 'react';
 
 import { Colors } from '@/constants/theme';
 import { authStorage, convex } from '@/lib/convex';
-import { SavedProvider } from '@/state/saved';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -49,16 +48,14 @@ export default function RootLayout() {
   return (
     <ConvexAuthProvider client={convex} storage={authStorage}>
       <ThemeProvider value={theme}>
-        <SavedProvider>
-          <StatusBar style="light" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.canvas } }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="event/[id]" />
-            <Stack.Screen name="publish" options={{ presentation: 'fullScreenModal' }} />
-            <Stack.Screen name="login" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-            <Stack.Screen name="email" />
-          </Stack>
-        </SavedProvider>
+        <StatusBar style="light" />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.canvas } }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="event/[id]" />
+          <Stack.Screen name="publish" options={{ presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="login" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+          <Stack.Screen name="email" />
+        </Stack>
       </ThemeProvider>
     </ConvexAuthProvider>
   );
