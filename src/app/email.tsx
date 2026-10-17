@@ -140,7 +140,10 @@ export default function EmailScreen() {
           {copy.subtitle}
         </Text>
 
-        <View style={styles.fields} pointerEvents={busy ? 'none' : 'auto'}>
+        {/* collapsable={false}: sin esto Android aplana este View y lo "desaplana" cuando cambia
+            pointerEvents, moviendo los campos de padre; si eso pasa mientras la pantalla se cierra
+            (login exitoso) crashea con "addViewAt: failed to insert view". */}
+        <View style={styles.fields} pointerEvents={busy ? 'none' : 'auto'} collapsable={false}>
           {mode === 'signUp' && (
             <Field label="Nombre" value={name} onChangeText={edit(setName)} autoComplete="name" textContentType="name" maxLength={50} />
           )}

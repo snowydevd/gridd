@@ -135,7 +135,9 @@ function CarForm({ car }: { car: Car | null }) {
       <ScrollView
         contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + Spacing.xl }]}
         keyboardShouldPersistTaps="handled">
-        <View style={styles.fields} pointerEvents={busy ? 'none' : 'auto'}>
+        {/* collapsable={false}: igual que en email.tsx, evita que Android aplane/desaplane este View
+            al cambiar pointerEvents mientras la pantalla se cierra ("addViewAt: failed to insert view"). */}
+        <View style={styles.fields} pointerEvents={busy ? 'none' : 'auto'} collapsable={false}>
           <OptionPicker label="Marca" value={make} options={MAKES} onChange={pickMake} searchable />
           <OptionPicker
             label="Modelo"
