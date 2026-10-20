@@ -27,10 +27,25 @@ type Props = {
   /** Espacio ocupado por la UI encima del mapa, para que el logo y el centro queden visibles. */
   padding?: EdgePadding;
   showsUserLocation?: boolean;
+  /** `false` congela la cámara (sin arrastrar ni zoom), para mapas chicos dentro de un scroll. */
+  interactive?: boolean;
+  /** Toque en el mapa, fuera de los pines. */
+  onPress?: () => void;
   style?: StyleProp<ViewStyle>;
 };
 
-export function EventMap({ ref, pins, selectedId, onSelect, initialRegion, padding, showsUserLocation, style }: Props) {
+export function EventMap({
+  ref,
+  pins,
+  selectedId,
+  onSelect,
+  initialRegion,
+  padding,
+  showsUserLocation,
+  interactive = true,
+  onPress,
+  style,
+}: Props) {
   const map = useRef<MapView>(null);
   const region = useRef(initialRegion);
 
@@ -59,7 +74,11 @@ export function EventMap({ ref, pins, selectedId, onSelect, initialRegion, paddi
       showsPointsOfInterests={false}
       showsCompass={false}
       toolbarEnabled={false}
-      pitchEnabled={false}>
+      pitchEnabled={false}
+      scrollEnabled={interactive}
+      zoomEnabled={interactive}
+      rotateEnabled={interactive}
+      onPress={onPress}>
       {pins.map((pin) => {
         const selected = pin.id === selectedId;
         return (

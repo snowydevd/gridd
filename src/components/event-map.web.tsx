@@ -20,9 +20,11 @@ type Props = {
   initialRegion: Region;
   padding?: { top: number; right: number; bottom: number; left: number };
   showsUserLocation?: boolean;
+  interactive?: boolean;
+  onPress?: () => void;
   style?: StyleProp<ViewStyle>;
 };
 
-export function EventMap({ pins, selectedId, onSelect, style }: Props) {
-  return <StylizedMap pins={pins} selectedId={selectedId} onSelect={onSelect} style={style} />;
+export function EventMap({ pins, selectedId, onSelect, onPress, style }: Props) {
+  return <StylizedMap pins={pins} selectedId={selectedId} onSelect={onSelect ?? onPress} style={style} />;
 }

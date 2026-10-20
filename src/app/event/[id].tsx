@@ -4,8 +4,8 @@ import { ActivityIndicator, Linking, Platform, ScrollView, Share, StyleSheet, Vi
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatKm } from '@/components/event-card';
+import { EventMap } from '@/components/event-map';
 import { Icon, type IconName } from '@/components/icon';
-import { StylizedMap } from '@/components/stylized-map';
 import { Text } from '@/components/text';
 import { Button, Fade, IconButton, Tag } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
@@ -44,8 +44,12 @@ export default function EventDetailScreen() {
   const hours = event.endTime ? `${event.time} – ${event.endTime} hs` : `${event.time} hs`;
 
   const openDirections = () => {
-    const q = encodeURIComponent(`${event.place}, ${event.area}`);
-    const url = Platform.OS === 'ios' ? `maps://?q=${q}` : `https://www.google.com/maps/search/?api=1&query=${q}`;
+    // Con las coordenadas el destino es exacto; el nombre del lugar queda como etiqueta del pin en iOS.
+    const { latitude, longitude } = event.coords;
+    const url =
+      Platform.OS === 'ios'
+        ? `maps://?ll=${latitude},${longitude}&q=${encodeURIComponent(event.place)}`
+        : `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
     Linking.openURL(url);
   };
 
@@ -76,7 +80,19 @@ export default function EventDetailScreen() {
             <Fact icon="pin" title={event.place} subtitle={event.distanceKm === undefined ? event.area : `${event.area} · a ${formatKm(event.distanceKm)}`} />
           </View>
 
-          <StylizedMap style={styles.map} pins={[{ id: event.id, x: 0.5, y: 0.5 }]} selectedId={event.id} />
+          <View style={styles.map}>
+            <EventMap
+              // initialRegion sólo se lee al montar: si cambia el evento hay que remontar el mapa.
+              key={event.id}
+              style={StyleSheet.absoluteFill}
+              interactive={false}
+              initialRegion={{ ...event.coords, latitudeDelta: MAP_DELTA, longitudeDelta: MAP_DELTA }}
+              pins={[{ id: event.id, label: event.place, coordinate: event.coords, x: event.map.x, y: event.map.y }]}
+              selectedId={event.id}
+              onSelect={openDirections}
+              onPress={openDirections}
+            />
+          </View>
 
           <Text tone="secondary" style={styles.description}>
             {event.description}
@@ -129,6 +145,9 @@ export default function EventDetailScreen() {
   );
 }
 
+// Zoom de barrio: se ve la calle y un par de cuadras alrededor.
+const MAP_DELTA = 0.012;
+
 function Fact({ icon, title, subtitle }: { icon: IconName; title: string; subtitle: string }) {
   return (
     <View style={styles.fact}>
@@ -161,7 +180,8 @@ const styles = StyleSheet.create({
   fact: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.lg },
   factDivider: { height: 1, backgroundColor: Colors.border },
   map: {
-    height: 140,
+    height: 180,
+    overflow: 'hidden',
     borderRadius: Radius.xl,
     borderWidth: 1,
     borderColor: Colors.border,
