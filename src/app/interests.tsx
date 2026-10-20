@@ -1,6 +1,6 @@
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/text';
@@ -13,13 +13,25 @@ import { useCurrentUser, useInterests } from '@/services/user';
 const KINDS = EVENT_KINDS.filter((k) => k !== 'otro');
 
 export default function InterestsScreen() {
-  const insets = useSafeAreaInsets();
   const { isLoading, isGuest } = useCurrentUser();
+
+  if (isGuest) return <Redirect href="/login" />;
+  if (isLoading) {
+    return (
+      <View style={[styles.screen, styles.centered]}>
+        <ActivityIndicator color={Colors.accent} />
+      </View>
+    );
+  }
+  // Se monta recién con el usuario cargado, así la selección arranca con lo que tiene guardado.
+  return <InterestsForm />;
+}
+
+function InterestsForm() {
+  const insets = useSafeAreaInsets();
   const { interests, setInterests } = useInterests();
   const [selected, setSelected] = useState<EventKind[]>(interests);
   const [saving, setSaving] = useState(false);
-
-  if (!isLoading && isGuest) return <Redirect href="/login" />;
 
   const toggle = (kind: EventKind) =>
     setSelected((prev) => (prev.includes(kind) ? prev.filter((k) => k !== kind) : [...prev, kind]));
@@ -29,6 +41,9 @@ export default function InterestsScreen() {
     try {
       await setInterests(selected);
       router.back();
+    } catch (error) {
+      if (__DEV__) console.log('[interests] no se pudieron guardar:', error);
+      Alert.alert('No pudimos guardar', 'Revisá tu conexión y probá de nuevo.');
     } finally {
       setSaving(false);
     }
@@ -60,6 +75,7 @@ export default function InterestsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.canvas },
+  centered: { alignItems: 'center', justifyContent: 'center' },
   header: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,

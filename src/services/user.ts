@@ -1,7 +1,7 @@
 import { api } from "@/lib/convex";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
-import { useState, useSyncExternalStore } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { useState } from "react";
 import { Alert } from "react-native";
 
 import type { EventKind } from "@/services/events";
@@ -38,25 +38,18 @@ export function useUserMeets() {
 
 
 
-// TODO(backend): reemplazar por `users.me.interests` y `users.setInterests`. Mientras tanto
-// los intereses viven en memoria y se pierden al cerrar la app.
-let localInterests: EventKind[] = [];
-const interestListeners = new Set<() => void>();
+const NO_INTERESTS: EventKind[] = [];
 
-/** Categorías que le interesan al usuario, para ordenar "Para vos" en Inicio. */
+/** Categorías que le interesan al usuario, para ordenar "Para vos" en Inicio. Un invitado no tiene. */
 export function useInterests() {
-    const interests = useSyncExternalStore(
-        (listener) => {
-            interestListeners.add(listener);
-            return () => interestListeners.delete(listener);
-        },
-        () => localInterests,
-    );
-    const setInterests = async (next: EventKind[]) => {
-        localInterests = [...new Set(next)];
-        interestListeners.forEach((listener) => listener());
-    };
-    return { interests, setInterests };
+    const { user } = useCurrentUser();
+    // Actualiza `users.me` al instante para que el perfil e Inicio cambien sin esperar al servidor.
+    const save = useMutation(api.users.setInterests).withOptimisticUpdate((store, { interests }) => {
+        const me = store.getQuery(api.users.me, {});
+        if (me) store.setQuery(api.users.me, {}, { ...me, interests: [...new Set(interests)] });
+    });
+    const setInterests = (next: EventKind[]) => save({ interests: next });
+    return { interests: user?.interests ?? NO_INTERESTS, setInterests };
 }
 
 /** Elige una foto de la galería, la sube y la guarda como foto de perfil. */
