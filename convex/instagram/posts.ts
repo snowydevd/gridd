@@ -197,6 +197,17 @@ export const reject = mutation({
   },
 });
 
+/** Deshace una aprobación o un rechazo: el post vuelve a draft para revisarlo de nuevo. */
+export const backToDraft = mutation({
+  args: { postId: v.id("igPosts") },
+  handler: async (ctx, { postId }) => {
+    await requireAdmin(ctx);
+    requireStatus(await getPost(ctx, postId), ["approved", "rejected"]);
+    await ctx.db.patch(postId, { status: "draft" });
+    return null;
+  },
+});
+
 export const reschedule = mutation({
   args: { postId: v.id("igPosts"), scheduledAt: v.number() },
   handler: async (ctx, { postId, scheduledAt }) => {

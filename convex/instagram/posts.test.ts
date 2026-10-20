@@ -197,6 +197,22 @@ describe("igPosts admin", () => {
     }
   });
 
+  test("backToDraft devuelve approved o rejected a draft, sólo admin", async () => {
+    const t = setup();
+    const admin = await makeUser(t, "admin", "Admin");
+    const pub = await makeUser(t, "publisher");
+    const postId = await draft(t, { scheduledAt: Date.now() + HOUR });
+    await admin.as.mutation(api.instagram.posts.approve, { postId });
+    await expectCode(pub.as.mutation(api.instagram.posts.backToDraft, { postId }), "FORBIDDEN");
+    await admin.as.mutation(api.instagram.posts.backToDraft, { postId });
+    expect((await get(t, postId))?.status).toBe("draft");
+    await admin.as.mutation(api.instagram.posts.reject, { postId });
+    await admin.as.mutation(api.instagram.posts.backToDraft, { postId });
+    expect((await get(t, postId))?.status).toBe("draft");
+    await t.run((ctx) => ctx.db.patch(postId, { status: "published" }));
+    await expectCode(admin.as.mutation(api.instagram.posts.backToDraft, { postId }), "CONFLICT");
+  });
+
   test("reject, reschedule y updateCaption", async () => {
     const t = setup();
     const admin = await makeUser(t, "admin", "Admin");

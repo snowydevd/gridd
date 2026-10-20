@@ -75,6 +75,53 @@ Las funciones tiran `ConvexError` con `data = { code, message }`:
 
 Subir una imagen: `generateUploadUrl` → `POST` del archivo a esa URL → el `storageId` de la respuesta va como `imageId` en `create` o `update`.
 
+## Instagram
+
+Posts promocionales para la cuenta de Gridd, en `convex/instagram/`:
+
+```
+generar lote → draft → aprobación manual → approved + fecha → cron publica → published
+```
+
+Nada pasa de `draft` a `approved` sin un admin. Un cron (`publishDue`, cada 15 min) publica los `approved` cuya fecha ya pasó; si Instagram falla, reintenta 30 min después hasta 3 veces y después queda `failed` con el error de Meta en `lastError`.
+
+### Variables de entorno
+
+| Variable | Para qué |
+|---|---|
+| `IG_ACCESS_TOKEN` | Token long-lived de Instagram. Sólo se usa la primera vez: después vive en la tabla `igCredentials` y se refresca solo (lunes, o si vence en menos de 10 días) |
+| `IG_USER_ID` | `user_id` de la cuenta (`GET https://graph.instagram.com/v26.0/me?fields=user_id,username`) |
+| `IG_GRAPH_VERSION` | Versión de la Graph API, ej. `v26.0` |
+| `IG_DRY_RUN` | `true` = no llama a Meta: loguea las requests y usa IDs falsos |
+| `ANTHROPIC_API_KEY` | Para generar copys con IA |
+| `IG_LLM_MODEL` | Opcional. Por defecto `claude-haiku-5-5` |
+| `IG_AUTOGEN_ENABLED` | `true` activa el lote semanal automático (jueves, drafts para lun/mié/vie 19:00) |
+| `IG_AUTOGEN_COUNT` | Opcional. Posts por lote semanal, por defecto 3 |
+
+Si generás un token nuevo, además de la env var hay que borrar la fila de `igCredentials` en el dashboard.
+
+**Configuración en Meta** (una vez): cuenta de Instagram profesional → app en developers.facebook.com con el producto Instagram ("API setup with Instagram login") → permisos `instagram_business_basic` e `instagram_business_content_publish` → invitar a la cuenta como "Evaluador de Instagram" y aceptar en instagram.com/accounts/manage_access → "Agregar cuenta" y "Generar token".
+
+### Contenido
+
+- `instagram/content/angles.ts`: los hechos verificados de Gridd. **Es lo único que la IA puede afirmar**; un ángulo sin hechos no se usa. Completá los `TODO`.
+- Plantillas (headline, feature, carousel) en `instagram/templates/`. Para verlas sin Convex: `bun scripts/preview-templates.ts` (deja los JPEG en `tmp/`). Si cambian las fuentes: `bun scripts/embed-template-assets.ts`.
+
+```bash
+# Lote con IA: 3 posts, el primero en startAt (ms) y uno cada 2 días
+npx convex run instagram/generate:generateBatch '{"count":3,"startAt":1793000000000,"everyDays":2}'
+
+# Lote escrito a mano (mismas validaciones, sin IA)
+npx convex run instagram/generate:createBatch '{"startAt":1793000000000,"posts":[{"angle":"cerca-tuyo","template":"headline","caption":"...","data":{"headline":"...","subline":"..."}}]}'
+```
+
+### Aprobar
+
+- **Dashboard local** (recomendado): `gridd/admin-dashboard`, `bun dev`. Login con una cuenta admin; ahí se ve el preview, se edita el caption, se elige la fecha y se aprueba, rechaza o reprograma.
+- **Dashboard de Convex**: en la tabla `igPosts`, cambiar `status` a `approved` y ajustar `scheduledAt` (ms).
+
+Para publicar uno ya aprobado sin esperar al cron: `npx convex run instagram/client:publishTest '{"postId":"..."}'`.
+
 ## Verificado manualmente
 
 2026-10-06, en el deployment de dev:
@@ -88,3 +135,10 @@ Pendiente: requiere cargar las credenciales de Google, Apple y Resend.
 - [ ] Reset de contraseña: llega el mail con el código y permite cambiarla
 - [ ] Login con Google
 - [ ] Login con Apple (en deployment con HTTPS)
+
+Instagram, 2026-10-20 en dev:
+
+- [x] Token válido contra Meta (cuenta `gridd.app`, BUSINESS) y cupo de publicación leído
+- [x] Dry-run: render → draft → aprobación como admin → `publishTest` → `published` con IDs falsos
+- [x] Publicación real de un post y permalink confirmado
+- [x] `generateBatch` con Haiku 5.5 y `createBatch` (rechaza cifras que no están en los hechos)
