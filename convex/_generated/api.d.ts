@@ -11,6 +11,7 @@
 import type * as attendance from "../attendance.js";
 import type * as auth from "../auth.js";
 import type * as cars from "../cars.js";
+import type * as crons from "../crons.js";
 import type * as events from "../events.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
@@ -18,6 +19,7 @@ import type * as instagram_client from "../instagram/client.js";
 import type * as instagram_credentials from "../instagram/credentials.js";
 import type * as instagram_graph from "../instagram/graph.js";
 import type * as instagram_posts from "../instagram/posts.js";
+import type * as instagram_scheduler from "../instagram/scheduler.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_avatar from "../lib/avatar.js";
 import type * as lib_errors from "../lib/errors.js";
@@ -45,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   attendance: typeof attendance;
   auth: typeof auth;
   cars: typeof cars;
+  crons: typeof crons;
   events: typeof events;
   files: typeof files;
   http: typeof http;
@@ -52,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   "instagram/credentials": typeof instagram_credentials;
   "instagram/graph": typeof instagram_graph;
   "instagram/posts": typeof instagram_posts;
+  "instagram/scheduler": typeof instagram_scheduler;
   "lib/auth": typeof lib_auth;
   "lib/avatar": typeof lib_avatar;
   "lib/errors": typeof lib_errors;

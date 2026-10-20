@@ -47,19 +47,22 @@ export const getCredentials = internalAction({
   handler: (ctx) => loadCredentials(ctx),
 });
 
+/** Pide un token nuevo a Meta y lo guarda en igCredentials. */
+export async function refreshAndSave(ctx: ActionCtx) {
+  const { client, creds } = await loadClient(ctx);
+  const { accessToken, expiresAt } = await client.refreshToken();
+  await ctx.runMutation(internal.instagram.credentials.save, {
+    accessToken,
+    igUserId: creds.igUserId,
+    expiresAt,
+  });
+  console.log(`[instagram] token refrescado, vence ${new Date(expiresAt).toISOString()}`);
+  return { expiresAt };
+}
+
 export const refreshToken = internalAction({
   args: {},
-  handler: async (ctx) => {
-    const { client, creds } = await loadClient(ctx);
-    const { accessToken, expiresAt } = await client.refreshToken();
-    await ctx.runMutation(internal.instagram.credentials.save, {
-      accessToken,
-      igUserId: creds.igUserId,
-      expiresAt,
-    });
-    console.log(`[instagram] token refrescado, vence ${new Date(expiresAt).toISOString()}`);
-    return { expiresAt };
-  },
+  handler: (ctx) => refreshAndSave(ctx),
 });
 
 /** Contenedor listo para publicar: reutiliza el guardado si sirve, si no crea uno nuevo. */
