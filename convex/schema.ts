@@ -21,10 +21,13 @@ export default defineSchema({
     searchRadius: v.optional(searchRadius),
     // Categorías que le gustan, para ordenar "Para vos" en Inicio. Sin valor = ninguna.
     interests: v.optional(v.array(eventKind)),
+    // Foto subida por el usuario. Tiene prioridad sobre `image` (la del login social).
+    avatarId: v.optional(v.id("_storage")),
     updatedAt: v.optional(v.number()),
   })
     .index("email", ["email"])
-    .index("phone", ["phone"]),
+    .index("phone", ["phone"])
+    .index("by_avatar", ["avatarId"]),
 
   cars: defineTable({
     userId: v.id("users"),

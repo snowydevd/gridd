@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
+import { assertAvatarFile, avatarUrl } from "./lib/avatar";
 import { currentUser, requireUser, roleOf } from "./lib/auth";
 import { fail } from "./lib/errors";
 import { validateName } from "./lib/validation";
@@ -15,7 +16,9 @@ export const me = query({
       _id: user._id,
       name: user.name ?? null,
       email: user.email ?? null,
-      image: user.image ?? null,
+      image: await avatarUrl(ctx, user),
+      // Foto subida por el usuario (no la del login social): se puede quitar.
+      hasAvatar: !!user.avatarId,
       role: roleOf(user),
       searchRadius: user.searchRadius ?? DEFAULT_SEARCH_RADIUS,
       interests: user.interests ?? [],
@@ -47,6 +50,30 @@ export const setInterests = mutation({
   handler: async (ctx, { interests }) => {
     const user = await requireUser(ctx);
     await ctx.db.patch(user._id, { interests: [...new Set(interests)], updatedAt: Date.now() });
+    return null;
+  },
+});
+
+/** Guarda una foto recién subida como foto de perfil y borra la anterior. */
+export const setAvatar = mutation({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, { storageId }) => {
+    const user = await requireUser(ctx);
+    await assertAvatarFile(ctx, storageId, user._id);
+    if (user.avatarId && user.avatarId !== storageId) await ctx.storage.delete(user.avatarId);
+    await ctx.db.patch(user._id, { avatarId: storageId, updatedAt: Date.now() });
+    return null;
+  },
+});
+
+/** Quita la foto subida; vuelve a verse la del login social, si hay. */
+export const removeAvatar = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    if (!user.avatarId) return null;
+    await ctx.storage.delete(user.avatarId);
+    await ctx.db.patch(user._id, { avatarId: undefined, updatedAt: Date.now() });
     return null;
   },
 });

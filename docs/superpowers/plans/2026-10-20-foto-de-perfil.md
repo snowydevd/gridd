@@ -24,7 +24,7 @@
 ## Global Constraints
 
 - Tipos aceptados: `image/jpeg`, `image/png`, `image/webp`. Tamaño máximo en el servidor: **2 MB**. Es un tope de seguridad, porque el cliente ya manda ~100 KB.
-- Un archivo inválido **se borra del storage** antes de fallar, para no dejar basura.
+- Un archivo inválido **no se puede borrar** en la misma mutation que falla: Convex deshace todo, `storage.delete` incluido. Queda huérfano hasta que exista el cron de limpieza (ver "Fuera de alcance"). Igual el cliente siempre manda un JPEG chico, así que solo pasa con clientes que se portan mal.
 - Un `storageId` que ya usa otro usuario (`users.avatarId`) o un evento (`events.imageId`) no se puede tomar → `FORBIDDEN`. Es el mismo criterio que `assertImageExists` en `convex/events.ts`. Sin este chequeo, alguien podría "robar" la foto de otro y borrársela al cambiar la suya.
 - Al reemplazar o quitar la foto, se borra el archivo anterior con `ctx.storage.delete`.
 - Los mensajes de error van en español rioplatense, con los códigos de `convex/lib/errors.ts`.
@@ -72,7 +72,7 @@
     return user.image ?? null;
   }
 
-  /** Valida un archivo recién subido para usarlo de avatar. Si es inválido lo borra. */
+  /** Valida un archivo recién subido para usarlo de avatar. */
   export async function assertAvatarFile(ctx: MutationCtx, storageId: Id<"_storage">, userId: Id<"users">) {
     const file = await ctx.db.system.get(storageId);
     if (!file) fail("INVALID", "La foto no existe. Volvé a subirla.");
@@ -81,12 +81,10 @@
     const event = await ctx.db.query("events").withIndex("by_image", (q) => q.eq("imageId", storageId)).first();
     if (event) fail("FORBIDDEN", "Esa imagen pertenece a un evento.");
     if (!file.contentType || !AVATAR_TYPES.includes(file.contentType) || file.size > AVATAR_MAX_BYTES) {
-      await ctx.storage.delete(storageId);
       fail("INVALID", "La foto tiene que ser JPG, PNG o WebP de hasta 2 MB.");
     }
   }
   ```
-  Ojo con el orden: los chequeos de dueño van **antes** del `delete`. Si no, un archivo ajeno inválido terminaría borrado.
 
 ## Task 2: Funciones de Convex
 
@@ -116,13 +114,13 @@
 
 ## Task 3: Tests de backend (`convex/users.avatar.test.ts`)
 
-Para subir archivos en los tests: `await t.run((ctx) => ctx.storage.store(new Blob([bytes], { type: "image/jpeg" })))`.
+Para subir archivos en los tests: `ctx.storage.store(blob)` dentro de `t.run`. convex-test no guarda el `contentType` del blob, así que el helper `upload()` de `convex/users.avatar.test.ts` lo completa con un `patch` sobre `_storage`. Las URLs de storage usan el sha256, no el id: comparar contra `ctx.storage.getUrl(id)`.
 
 - [ ] `generateAvatarUploadUrl`: anónimo → `UNAUTHENTICATED`; un usuario común recibe un string.
 - [ ] `setAvatar` guarda el id y `me.image` pasa a ser la URL del storage.
 - [ ] Con foto subida, `me.image` ignora `users.image`. Con `removeAvatar`, vuelve a `users.image`.
 - [ ] Reemplazar la foto borra el archivo anterior: `ctx.db.system.get(viejo)` da `null`.
-- [ ] Tipo inválido (`text/plain`) → `INVALID`, y el archivo queda borrado.
+- [ ] Tipo inválido (`text/plain`) → `INVALID`, y la foto no cambia.
 - [ ] Más de 2 MB → `INVALID`. Con un Blob de 2 MB + 1 byte alcanza.
 - [ ] Usar el avatar de otro usuario → `FORBIDDEN`, y el archivo del otro **sigue existiendo**.
 - [ ] Usar la imagen de un evento → `FORBIDDEN`.

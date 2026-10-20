@@ -1,5 +1,6 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
+import { avatarUrl } from "./avatar";
 
 export type EventView = Doc<"events"> & {
   imageUrl: string | null;
@@ -13,7 +14,7 @@ export async function toEventView(ctx: QueryCtx, event: Doc<"events">): Promise<
     ...event,
     imageUrl: event.imageId ? await ctx.storage.getUrl(event.imageId) : null,
     organizer: organizer
-      ? { _id: organizer._id, name: organizer.name ?? null, image: organizer.image ?? null }
+      ? { _id: organizer._id, name: organizer.name ?? null, image: await avatarUrl(ctx, organizer) }
       : null,
   };
 }
