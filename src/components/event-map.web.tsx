@@ -21,10 +21,11 @@ type Props = {
   padding?: { top: number; right: number; bottom: number; left: number };
   showsUserLocation?: boolean;
   interactive?: boolean;
+  /** En web el mapa es estilizado: no hay coordenadas reales para devolver. */
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
 };
 
 export function EventMap({ pins, selectedId, onSelect, onPress, style }: Props) {
-  return <StylizedMap pins={pins} selectedId={selectedId} onSelect={onSelect ?? onPress} style={style} />;
+  return <StylizedMap pins={pins} selectedId={selectedId} onSelect={onSelect ?? (() => onPress?.())} style={style} />;
 }

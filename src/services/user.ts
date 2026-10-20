@@ -1,8 +1,8 @@
 import { showDialog } from "@/components/dialog";
-import { api, type Id } from "@/lib/convex";
+import { api } from "@/lib/convex";
+import { uploadImage } from "@/lib/upload";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation, useQuery } from "convex/react";
-import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 
@@ -75,19 +75,7 @@ export function useAvatarUpload() {
         setUploading(true);
         try {
             // ~50–150 KB: alcanza para mostrarla en el perfil y no gasta datos.
-            const rendered = await ImageManipulator.manipulate(picked.assets[0].uri)
-                .resize({ width: AVATAR_SIZE })
-                .renderAsync();
-            const photo = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.8 });
-
-            const uploadUrl = await generateUploadUrl();
-            // En React Native el blob de un file:// viene sin tipo, y fetch manda ese tipo vacío como
-            // Content-Type (pisa el header). Convex lo rechaza con 400, así que se le pone el tipo al blob.
-            const file = await (await fetch(photo.uri)).blob();
-            const body = new Blob([file], { type: "image/jpeg" });
-            const res = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": "image/jpeg" }, body });
-            if (!res.ok) throw new Error(`upload ${res.status}`);
-            const { storageId } = (await res.json()) as { storageId: Id<"_storage"> };
+            const storageId = await uploadImage(await generateUploadUrl(), picked.assets[0].uri, AVATAR_SIZE);
             await setAvatar({ storageId });
         } catch (error) {
             if (__DEV__) console.log("[avatar] no se pudo subir:", error);

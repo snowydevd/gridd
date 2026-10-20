@@ -1,8 +1,11 @@
 import type { MeetEvent } from "@/data/events";
 import { api } from "@/lib/convex";
-import { usePaginatedQuery, useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
-import { useState } from "react";
+import { uploadImage } from "@/lib/upload";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { useEffect, useState } from "react";
+
+import { DAY, UY_BOUNDS } from "../../convex/lib/validation";
 
 const PAGE_SIZE = 5
 
@@ -22,6 +25,50 @@ export function useUpcomingEvents({ kind, pageSize = PAGE_SIZE }: { kind?: Event
         canLoadMore: status === "CanLoadMore",
         loadMore: () => loadMore(pageSize)
     }
+}
+
+/**
+ * Eventos para el mapa: los publicados en todo Uruguay que todavía no terminaron, por fecha de inicio.
+ * `undefined` mientras carga.
+ */
+export function useMapEvents() {
+    // La consulta se arma una vez al montar (un evento puede durar hasta 7 días, por eso arranca una
+    // semana atrás). El mapa queda montado al cambiar de tab, así que la hora para descartar los que
+    // terminaron se actualiza cada minuto.
+    const [from] = useState(() => Date.now() - 7 * DAY);
+    const events = useQuery(api.events.listInBounds, { ...UY_BOUNDS, from, to: from + 90 * DAY });
+    const now = useNow(60_000);
+    return events?.filter((e) => e.endsAt >= now);
+}
+
+/** Hora actual, refrescada cada `intervalMs`. */
+function useNow(intervalMs: number) {
+    const [now, setNow] = useState(Date.now);
+    useEffect(() => {
+        const id = setInterval(() => setNow(Date.now()), intervalMs);
+        return () => clearInterval(id);
+    }, [intervalMs]);
+    return now;
+}
+
+/** Ancho al que se achica la portada: alcanza para el hero de Inicio y la ficha sin gastar datos. */
+const COVER_WIDTH = 1280;
+
+export type NewEvent = Omit<FunctionArgs<typeof api.events.create>, "imageId">;
+
+/**
+ * Publica un evento: sube la portada (si hay) y lo crea. Devuelve el slug para abrir la ficha.
+ * Los errores del backend llegan como ConvexError, con el mensaje en `error.data.message`.
+ */
+export function usePublishEvent() {
+    const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+    const create = useMutation(api.events.create);
+
+    return async (event: NewEvent, coverUri?: string) => {
+        const imageId = coverUri ? await uploadImage(await generateUploadUrl(), coverUri, COVER_WIDTH) : undefined;
+        const { slug } = await create({ ...event, imageId });
+        return slug;
+    };
 }
 
 /** Un evento por slug (`null` si no existe, `undefined` mientras carga). */

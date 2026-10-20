@@ -3,7 +3,6 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -125,7 +124,7 @@ function CarForm({ car }: { car: Car | null }) {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.screen} behavior="padding">
       <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
         <IconButton icon="close" label="Cerrar" onPress={() => router.back()} />
         <Text variant="title">{car ? 'Editar auto' : 'Nuevo auto'}</Text>

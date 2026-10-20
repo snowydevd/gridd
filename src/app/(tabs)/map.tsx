@@ -6,11 +6,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { showDialog } from '@/components/dialog';
 import { EventRow } from '@/components/event-card';
 import { EventMap, type EventMapHandle } from '@/components/event-map';
+import { Text } from '@/components/text';
 import { Chip, IconButton } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
-import { categories, events, type Category } from '@/data/events';
+import { EVENT_KINDS, KIND_LABELS, toCardEvent, useMapEvents, type EventKind } from '@/services/events';
+import { useLastKnownLocation } from '@/services/location';
 
-// Montevideo + Costa de Oro: entran todos los encuentros de ejemplo.
+// Montevideo + Costa de Oro.
 const INITIAL_REGION = { latitude: -34.86, longitude: -56.04, latitudeDelta: 0.2, longitudeDelta: 0.24 };
 // Lo que tapan los chips (arriba) y la tarjeta + botón de ubicación (abajo).
 const MAP_PADDING_TOP = 56;
@@ -19,12 +21,15 @@ const MAP_PADDING_BOTTOM = 150;
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const map = useRef<EventMapHandle>(null);
-  const [category, setCategory] = useState<Category | null>(null);
+  const location = useLastKnownLocation();
+  const [kind, setKind] = useState<EventKind | null>(null);
   const [showsUser, setShowsUser] = useState(false);
 
-  const visible = events.filter((e) => !e.past && (!category || e.category === category));
-  const [selectedId, setSelectedId] = useState(visible.find((e) => e.isToday)?.id ?? visible[0]?.id);
-  const selected = visible.find((e) => e.id === selectedId) ?? visible[0];
+  const events = useMapEvents();
+  const visible = (events ?? []).filter((e) => !kind || e.kind === kind).map((e) => toCardEvent(e, location));
+  const [selectedId, setSelectedId] = useState<string>();
+  // Sin selección (o si la elegida quedó filtrada), el de hoy o el próximo.
+  const selected = visible.find((e) => e.id === selectedId) ?? visible.find((e) => e.isToday) ?? visible[0];
 
   const select = (id: string) => {
     setSelectedId(id);
@@ -72,9 +77,9 @@ export default function MapScreen() {
         showsHorizontalScrollIndicator={false}
         style={[styles.chipsScroll, { top: insets.top + Spacing.md }]}
         contentContainerStyle={styles.chips}>
-        <Chip label="Todos" selected={!category} onPress={() => setCategory(null)} />
-        {categories.map((c) => (
-          <Chip key={c} label={c} selected={category === c} onPress={() => setCategory(c)} />
+        <Chip label="Todos" selected={!kind} onPress={() => setKind(null)} />
+        {EVENT_KINDS.map((k) => (
+          <Chip key={k} label={KIND_LABELS[k]} selected={kind === k} onPress={() => setKind(k)} />
         ))}
       </ScrollView>
 
@@ -82,10 +87,18 @@ export default function MapScreen() {
         <View style={styles.locate}>
           <IconButton icon="locate" label="Centrar en mi ubicación" onPress={locate} />
         </View>
-        {selected && (
+        {selected ? (
           <View style={styles.sheet}>
             <EventRow event={selected} />
           </View>
+        ) : (
+          events && (
+            <View style={[styles.sheet, styles.empty]}>
+              <Text tone="secondary">
+                {kind ? `No hay encuentros de ${KIND_LABELS[kind]} próximos.` : 'No hay encuentros próximos.'}
+              </Text>
+            </View>
+          )
         )}
       </View>
     </View>
@@ -112,4 +125,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
   },
+  empty: { padding: Spacing.lg, alignItems: 'center' },
 });

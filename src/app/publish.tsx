@@ -1,9 +1,12 @@
-import { Image, type ImageSource } from 'expo-image';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { Redirect, router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,30 +16,28 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { showDialog } from '@/components/dialog';
+import { EventMap, type EventMapHandle } from '@/components/event-map';
 import { Icon } from '@/components/icon';
-import { StylizedMap } from '@/components/stylized-map';
 import { Text } from '@/components/text';
 import { Button, Chip, Fade, IconButton, Tag } from '@/components/ui';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
-import { categories, type Category } from '@/data/events';
+import { carErrorMessage } from '@/services/cars';
+import { EVENT_KINDS, KIND_LABELS, usePublishEvent, type EventKind } from '@/services/events';
+import { useLastKnownLocation, type LatLng } from '@/services/location';
 import { useCurrentUser } from '@/services/user';
+import { UY_BOUNDS } from '../../convex/lib/validation';
 
 const STEPS = ['Evento', 'Cuándo', 'Dónde', 'Portada'] as const;
 const REVIEW = STEPS.length;
 
 const times = ['18:00', '19:00', '20:00', '20:30', '21:00', '22:00'];
+const durations = [2, 3, 4, 6];
 
-const places = [
-  { id: 'kibon', name: 'Explanada de Kibón', area: 'Pocitos', x: 0.56, y: 0.6 },
-  { id: 'virgilio', name: 'Plaza Virgilio', area: 'Punta Gorda', x: 0.84, y: 0.68 },
-  { id: 'pinar', name: 'Autódromo El Pinar', area: 'Canelones', x: 0.22, y: 0.3 },
-];
-
-const covers: ImageSource[] = [
-  require('@/assets/images/meets/midnight-rambla.jpg'),
-  require('@/assets/images/meets/jdm-garage.jpg'),
-  require('@/assets/images/meets/gtr-neon.jpg'),
-];
+// Montevideo; el mapa arranca acá si no se conoce la ubicación del organizador.
+const INITIAL_REGION = { latitude: -34.88, longitude: -56.16, latitudeDelta: 0.15, longitudeDelta: 0.15 };
+const PLACE_DELTA = 0.01;
+// La misma que usa la app cuando un evento no tiene portada.
+const DEFAULT_COVER = require('@/assets/images/meets/midnight-rambla.jpg');
 
 const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -54,6 +55,23 @@ function formatDay(d: Date) {
   return `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]}`;
 }
 
+/** Día elegido + "HH:MM", en la hora local del teléfono. */
+function startOf(day: Date, time: string) {
+  const [h, m] = time.split(':').map(Number);
+  const d = new Date(day);
+  d.setHours(h, m, 0, 0);
+  return d.getTime();
+}
+
+function inUruguay({ latitude, longitude }: LatLng) {
+  return (
+    latitude >= UY_BOUNDS.minLat &&
+    latitude <= UY_BOUNDS.maxLat &&
+    longitude >= UY_BOUNDS.minLon &&
+    longitude <= UY_BOUNDS.maxLon
+  );
+}
+
 // Sólo admins y publishers pueden publicar (el backend lo exige en events.create);
 // esto cubre a quien llegue por deep link.
 export default function PublishScreen() {
@@ -67,41 +85,129 @@ function PublishForm() {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState(0);
 
+  const location = useLastKnownLocation();
+  const publish = usePublishEvent();
+  const map = useRef<EventMapHandle>(null);
+  const scroll = useRef<ScrollView>(null);
+  const writingDescription = useRef(false);
+  // La hora se toma una vez al montar: llamar a Date.now() en cada render rompe la pureza del React Compiler.
+  const [now] = useState(Date.now);
+  const [days] = useState(() => nextDays(14));
+
   const [name, setName] = useState('');
-  const [category, setCategory] = useState<Category | null>(null);
+  const [kind, setKind] = useState<EventKind | null>(null);
   const [dayIndex, setDayIndex] = useState<number | null>(null);
   const [time, setTime] = useState<string | null>(null);
-  const [placeId, setPlaceId] = useState<string | null>(null);
+  const [duration, setDuration] = useState(3);
+  const [placeName, setPlaceName] = useState('');
   const [query, setQuery] = useState('');
-  const [cover, setCover] = useState<number | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [coords, setCoords] = useState<LatLng | null>(null);
+  const [coverUri, setCoverUri] = useState<string | null>(null);
   const [description, setDescription] = useState('');
+  const [publishing, setPublishing] = useState(false);
 
-  const days = nextDays(14);
-  const place = places.find((p) => p.id === placeId);
+  // Hoy sólo se ofrecen los horarios que todavía no pasaron.
+  const availableTimes = dayIndex === null ? times : times.filter((t) => startOf(days[dayIndex], t) > now);
+  const startsAt = dayIndex !== null && time && availableTimes.includes(time) ? startOf(days[dayIndex], time) : null;
+  const outsideUruguay = coords !== null && !inUruguay(coords);
 
   const canContinue = [
-    name.trim().length >= 3 && !!category,
-    dayIndex !== null && !!time,
-    !!place,
-    cover !== null,
+    name.trim().length >= 3 && !!kind,
+    startsAt !== null,
+    placeName.trim().length >= 2 && coords !== null && !outsideUruguay,
+    true,
     true,
   ][step];
 
-  const next = () => {
-    if (step < REVIEW) {
-      setStep(step + 1);
-      return;
+  const searchPlace = async () => {
+    const address = query.trim();
+    if (!address || searching) return;
+    setSearching(true);
+    try {
+      // En Android el geocoder del sistema exige permiso de ubicación.
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        showDialog('Sin acceso a tu ubicación', 'Activalo para buscar direcciones, o tocá el mapa para marcar el lugar.');
+        return;
+      }
+      const [found] = await Location.geocodeAsync(`${address}, Uruguay`);
+      if (!found) {
+        showDialog('No encontramos esa dirección', 'Probá escribirla de otra forma o tocá el mapa para marcar el lugar.');
+        return;
+      }
+      const point = { latitude: found.latitude, longitude: found.longitude };
+      setCoords(point);
+      if (!placeName.trim()) setPlaceName(address);
+      map.current?.focus(point, PLACE_DELTA);
+    } catch (error) {
+      if (__DEV__) console.log('[publish] geocode falló:', error);
+      showDialog('No pudimos buscar la dirección', 'Tocá el mapa para marcar el lugar.');
+    } finally {
+      setSearching(false);
     }
-    showDialog('¡Publicado!', 'Tu evento ya aparece en Inicio y en el mapa.');
-    router.back();
   };
 
-  const back = () => (step === 0 ? router.back() : setStep(step - 1));
+  const pickCover = async () => {
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [16, 10],
+      quality: 1, // Se comprime una sola vez, al subirla.
+    });
+    if (!picked.canceled) setCoverUri(picked.assets[0].uri);
+  };
+
+  const submit = async () => {
+    if (!kind || startsAt === null || !coords) return;
+    setPublishing(true);
+    try {
+      const slug = await publish(
+        {
+          title: name,
+          description,
+          kind,
+          startsAt,
+          endsAt: startsAt + duration * 60 * 60 * 1000,
+          placeName,
+          lat: coords.latitude,
+          lon: coords.longitude,
+        },
+        coverUri ?? undefined,
+      );
+      router.replace({ pathname: '/event/[id]', params: { id: slug } });
+      showDialog('¡Publicado!', 'Tu evento ya aparece en Inicio y en el mapa.');
+    } catch (error) {
+      if (__DEV__) console.log('[publish] falló:', error);
+      showDialog('No pudimos publicar', carErrorMessage(error, 'Revisá tu conexión y probá de nuevo.'));
+      setPublishing(false);
+    }
+  };
+
+  const next = () => (step < REVIEW ? setStep(step + 1) : void submit());
+
+  // La descripción está al final del paso: cuando aparece el teclado (o el texto crece) se baja hasta
+  // ella para que se vea lo que se escribe.
+  const revealDescription = () => {
+    if (writingDescription.current) scroll.current?.scrollToEnd({ animated: true });
+  };
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidShow', revealDescription);
+    return () => sub.remove();
+  }, []);
+
+  const back = () => {
+    if (publishing) return;
+    if (step === 0) router.back();
+    else setStep(step - 1);
+  };
 
   return (
     <KeyboardAvoidingView
       style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      // Con edge-to-edge (obligatorio en Android desde SDK 53) el sistema ya no achica la pantalla al
+      // abrir el teclado: en las dos plataformas hay que hacerle lugar acá.
+      behavior="padding">
       <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={styles.headerRow}>
           <IconButton icon={step === 0 ? 'close' : 'back'} label={step === 0 ? 'Cerrar' : 'Atrás'} onPress={back} />
@@ -118,6 +224,7 @@ function PublishForm() {
       </View>
 
       <ScrollView
+        ref={scroll}
         style={{ flex: 1 }}
         contentContainerStyle={styles.body}
         keyboardShouldPersistTaps="handled">
@@ -137,8 +244,8 @@ function PublishForm() {
               Tipo
             </Text>
             <View style={styles.wrap}>
-              {categories.map((c) => (
-                <Chip key={c} label={c} selected={category === c} onPress={() => setCategory(c)} />
+              {EVENT_KINDS.map((k) => (
+                <Chip key={k} label={KIND_LABELS[k]} selected={kind === k} onPress={() => setKind(k)} />
               ))}
             </View>
           </>
@@ -171,9 +278,21 @@ function PublishForm() {
             <Text variant="overline" tone="secondary" style={styles.fieldLabel}>
               Hora de inicio
             </Text>
+            {availableTimes.length > 0 ? (
+              <View style={styles.wrap}>
+                {availableTimes.map((t) => (
+                  <Chip key={t} label={t} selected={time === t} onPress={() => setTime(t)} />
+                ))}
+              </View>
+            ) : (
+              <Text tone="secondary">Ya no quedan horarios para hoy. Elegí otro día.</Text>
+            )}
+            <Text variant="overline" tone="secondary" style={styles.fieldLabel}>
+              Duración
+            </Text>
             <View style={styles.wrap}>
-              {times.map((t) => (
-                <Chip key={t} label={t} selected={time === t} onPress={() => setTime(t)} />
+              {durations.map((h) => (
+                <Chip key={h} label={`${h} h`} selected={duration === h} onPress={() => setDuration(h)} />
               ))}
             </View>
           </>
@@ -182,68 +301,91 @@ function PublishForm() {
         {step === 2 && (
           <>
             <StepTitle title="¿Dónde?" />
-            <View style={styles.search}>
+            <TextInput
+              value={placeName}
+              onChangeText={setPlaceName}
+              placeholder="Nombre del lugar, ej: Explanada de Kibón"
+              placeholderTextColor={Colors.textDisabled}
+              style={styles.input}
+              maxLength={120}
+            />
+            <View style={[styles.search, { marginTop: Spacing.md }]}>
               <Icon name="search" size={18} color={Colors.textSecondary} />
               <TextInput
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Buscar lugar o dirección"
+                onSubmitEditing={searchPlace}
+                placeholder="Buscar dirección"
                 placeholderTextColor={Colors.textDisabled}
+                returnKeyType="search"
                 style={styles.searchInput}
               />
+              {searching && <ActivityIndicator size="small" color={Colors.accent} />}
             </View>
-            <StylizedMap
+            <EventMap
+              ref={map}
               style={styles.map}
-              pins={places.map((p) => ({ id: p.id, x: p.x, y: p.y, label: p.name }))}
-              selectedId={placeId ?? undefined}
-              onSelect={setPlaceId}
+              initialRegion={
+                location ? { ...location, latitudeDelta: 0.05, longitudeDelta: 0.05 } : INITIAL_REGION
+              }
+              showsUserLocation={!!location}
+              pins={
+                coords
+                  ? [{ id: 'place', label: placeName.trim() || 'Lugar del evento', coordinate: coords, x: 0.5, y: 0.5 }]
+                  : []
+              }
+              selectedId="place"
+              // En web el mapa es estilizado y no devuelve coordenadas.
+              onPress={(point) => point && setCoords(point)}
             />
-            {places
-              .filter((p) => p.name.toLowerCase().includes(query.trim().toLowerCase()))
-              .map((p) => {
-                const selected = p.id === placeId;
-                return (
-                  <Pressable key={p.id} onPress={() => setPlaceId(p.id)} style={styles.placeRow}>
-                    <Icon name="pin" size={20} color={selected ? Colors.accent : Colors.textSecondary} />
-                    <View style={{ flex: 1 }}>
-                      <Text variant="heading">{p.name}</Text>
-                      <Text variant="caption" tone="secondary">
-                        {p.area}
-                      </Text>
-                    </View>
-                    {selected && <Icon name="check" size={20} color={Colors.accent} />}
-                  </Pressable>
-                );
-              })}
+            <Text variant="caption" tone={outsideUruguay ? undefined : 'secondary'} style={outsideUruguay && styles.error}>
+              {outsideUruguay
+                ? 'El lugar tiene que estar en Uruguay.'
+                : coords
+                  ? 'Tocá el mapa para mover el punto.'
+                  : 'Buscá la dirección o tocá el mapa para marcar el punto exacto.'}
+            </Text>
           </>
         )}
 
         {step === 3 && (
           <>
             <StepTitle title="Elegí una portada" />
-            <View style={styles.covers}>
-              {covers.map((src, i) => (
-                <Pressable
-                  key={i}
-                  onPress={() => setCover(i)}
-                  accessibilityLabel={`Portada ${i + 1}`}
-                  style={[styles.cover, cover === i && styles.coverSelected]}>
-                  <Image source={src} style={StyleSheet.absoluteFill} contentFit="cover" />
-                </Pressable>
-              ))}
-              <Pressable style={[styles.cover, styles.coverUpload]} accessibilityLabel="Subir foto">
-                <Icon name="camera" size={22} color={Colors.textSecondary} />
-                <Text variant="caption" tone="secondary">
-                  Subir
-                </Text>
-              </Pressable>
-            </View>
+            <Pressable
+              onPress={pickCover}
+              accessibilityRole="button"
+              accessibilityLabel={coverUri ? 'Cambiar portada' : 'Subir portada'}
+              style={[styles.cover, !coverUri && styles.coverUpload]}>
+              {coverUri ? (
+                <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+              ) : (
+                <>
+                  <Icon name="camera" size={26} color={Colors.textSecondary} />
+                  <Text variant="label" tone="secondary">
+                    Subir foto (opcional)
+                  </Text>
+                </>
+              )}
+            </Pressable>
+            {coverUri ? (
+              <View style={styles.coverActions}>
+                <Button label="Cambiar" variant="secondary" icon="photo" onPress={pickCover} style={{ flex: 1 }} />
+                <Button label="Quitar" variant="ghost" onPress={() => setCoverUri(null)} style={{ flex: 1 }} />
+              </View>
+            ) : (
+              <Text variant="caption" tone="secondary" style={styles.coverHint}>
+                Si no subís una, el evento usa la portada de Gridd.
+              </Text>
+            )}
             <Text variant="overline" tone="secondary" style={styles.fieldLabel}>
               Descripción (opcional)
             </Text>
             <TextInput
               value={description}
               onChangeText={setDescription}
+              onFocus={() => (writingDescription.current = true)}
+              onBlur={() => (writingDescription.current = false)}
+              onContentSizeChange={revealDescription}
               placeholder="Algo que la gente tenga que saber"
               placeholderTextColor={Colors.textDisabled}
               style={[styles.input, styles.textarea]}
@@ -257,18 +399,18 @@ function PublishForm() {
           <>
             <StepTitle title="Revisá tu evento" />
             <View style={styles.preview}>
-              {cover !== null && <Image source={covers[cover]} style={StyleSheet.absoluteFill} contentFit="cover" />}
+              <Image source={coverUri ? { uri: coverUri } : DEFAULT_COVER} style={StyleSheet.absoluteFill} contentFit="cover" />
               <Fade style={{ top: '30%' }} to="rgba(11,11,12,0.95)" />
               <View style={styles.previewBody}>
-                {category && <Tag label={category} />}
+                {kind && <Tag label={KIND_LABELS[kind]} />}
                 <Text variant="title" numberOfLines={2}>
                   {name}
                 </Text>
                 <Text variant="label" tone="secondary">
-                  {dayIndex !== null && formatDay(days[dayIndex])} · {time} hs
+                  {dayIndex !== null && formatDay(days[dayIndex])} · {time} hs · {duration} h
                 </Text>
-                <Text variant="label" tone="secondary">
-                  {place?.name}, {place?.area}
+                <Text variant="label" tone="secondary" numberOfLines={1}>
+                  {placeName}
                 </Text>
               </View>
             </View>
@@ -292,6 +434,7 @@ function PublishForm() {
           icon={step === REVIEW ? 'check' : 'arrow'}
           iconPosition={step === REVIEW ? 'start' : 'end'}
           disabled={!canContinue}
+          loading={publishing}
           onPress={next}
         />
       </View>
@@ -357,7 +500,7 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, color: Colors.text, fontFamily: Fonts.body, fontSize: 15, height: '100%' },
   map: {
-    height: 180,
+    height: 240,
     marginVertical: Spacing.lg,
     borderRadius: Radius.xl,
     borderWidth: 1,
@@ -371,9 +514,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  covers: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   cover: {
-    width: '48.5%',
+    width: '100%',
     aspectRatio: 16 / 10,
     borderRadius: Radius.lg,
     overflow: 'hidden',
@@ -381,7 +523,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  coverSelected: { borderColor: Colors.accent },
+  coverActions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md },
+  coverHint: { marginTop: Spacing.sm },
+  error: { color: Colors.error },
   coverUpload: {
     alignItems: 'center',
     justifyContent: 'center',

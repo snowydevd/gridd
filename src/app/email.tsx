@@ -7,7 +7,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -126,7 +125,7 @@ export default function EmailScreen() {
   const copy = COPY[mode];
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.screen} behavior="padding">
       <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
         <IconButton icon="back" label="Volver" onPress={() => router.back()} />
       </View>

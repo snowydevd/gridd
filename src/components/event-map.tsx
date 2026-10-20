@@ -1,4 +1,5 @@
-import { useImperativeHandle, useRef, useState, type Ref } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { Image, Platform, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import MapView, { Marker, type EdgePadding, type LatLng, type Region } from 'react-native-maps';
 
@@ -29,8 +30,8 @@ type Props = {
   showsUserLocation?: boolean;
   /** `false` congela la cámara (sin arrastrar ni zoom), para mapas chicos dentro de un scroll. */
   interactive?: boolean;
-  /** Toque en el mapa, fuera de los pines. */
-  onPress?: () => void;
+  /** Toque en el mapa, fuera de los pines, con el punto tocado. */
+  onPress?: (coordinate: LatLng) => void;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -48,6 +49,17 @@ export function EventMap({
 }: Props) {
   const map = useRef<MapView>(null);
   const region = useRef(initialRegion);
+
+  // Los pines son una "foto" congelada (ver PinMarker). Al volver a esta pantalla desde otra, Android
+  // pierde esas fotos y los pines quedan invisibles: se remontan para que se vuelvan a dibujar.
+  const [generation, setGeneration] = useState(0);
+  const focusedBefore = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (focusedBefore.current) setGeneration((g) => g + 1);
+      focusedBefore.current = true;
+    }, []),
+  );
 
   useImperativeHandle(ref, () => ({
     focus: (coordinate, delta) => {
@@ -78,13 +90,13 @@ export function EventMap({
       scrollEnabled={interactive}
       zoomEnabled={interactive}
       rotateEnabled={interactive}
-      onPress={onPress}>
+      onPress={(e) => onPress?.(e.nativeEvent.coordinate)}>
       {pins.map((pin) => {
         const selected = pin.id === selectedId;
         return (
           <PinMarker
-            // Remontar al cambiar la selección: el pin pasa de chico a grande.
-            key={`${pin.id}-${selected}`}
+            // Remontar al cambiar la selección (el pin pasa de chico a grande) y al volver a la pantalla.
+            key={`${pin.id}-${selected}-${generation}`}
             pin={pin}
             selected={selected}
             onPress={() => onSelect?.(pin.id)}
