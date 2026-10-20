@@ -1,0 +1,67 @@
+// @vitest-environment node
+import jpeg from "jpeg-js";
+import { describe, expect, test } from "vitest";
+import { SAMPLES } from "./samples";
+import { renderSlides } from "./render";
+import { HEIGHT, WIDTH } from "./theme";
+import { checkTemplateData } from "./index";
+
+function decode(buf: Uint8Array) {
+  return jpeg.decode(buf, { useTArray: true });
+}
+
+function pixel(img: ReturnType<typeof decode>, x: number, y: number) {
+  const i = (y * img.width + x) * 4;
+  return [img.data[i], img.data[i + 1], img.data[i + 2]];
+}
+
+const near = (rgb: number[], hex: string, tol = 12) => {
+  const target = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return rgb.every((c, i) => Math.abs(c - target[i]) <= tol);
+};
+
+/** ¿Hay algún pixel del color en la imagen? (muestreo cada 4 px) */
+function contains(img: ReturnType<typeof decode>, hex: string) {
+  for (let y = 0; y < img.height; y += 4) {
+    for (let x = 0; x < img.width; x += 4) if (near(pixel(img, x, y), hex)) return true;
+  }
+  return false;
+}
+
+describe("render de plantillas", () => {
+  test.each(["headline", "feature", "carousel"] as const)(
+    "%s: JPEG 1080×1350 con fondo y acento de la marca",
+    async (template) => {
+      const slides = await renderSlides(SAMPLES[template]);
+      expect(slides.length).toBe(template === "carousel" ? 2 + SAMPLES.carousel.data.slides.length : 1);
+      for (const buf of slides) {
+        // Firma JPEG (FF D8 FF).
+        expect([...buf.slice(0, 3)]).toEqual([0xff, 0xd8, 0xff]);
+        const img = decode(buf);
+        expect([img.width, img.height]).toEqual([WIDTH, HEIGHT]);
+        expect(near(pixel(img, 4, 4), "#0B0B0C")).toBe(true);
+        expect(contains(img, "#DFFF00")).toBe(true);
+      }
+    },
+    30_000,
+  );
+});
+
+describe("checkTemplateData", () => {
+  test("acepta los ejemplos", () => {
+    for (const sample of Object.values(SAMPLES)) expect(() => checkTemplateData(sample)).not.toThrow();
+  });
+
+  test("rechaza cantidades fuera de rango y textos vacíos", () => {
+    expect(() =>
+      checkTemplateData({ template: "feature", data: { title: "X", bullets: ["uno"] } }),
+    ).toThrow(/bullets/);
+    expect(() =>
+      checkTemplateData({
+        template: "carousel",
+        data: { cover: { title: "X" }, slides: [{ title: "a", body: "b" }], cta: { title: "c" } },
+      }),
+    ).toThrow(/slides/);
+    expect(() => checkTemplateData({ template: "headline", data: { headline: "  " } })).toThrow(/headline/);
+  });
+});
