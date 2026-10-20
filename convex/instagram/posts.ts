@@ -96,14 +96,25 @@ export const markPublished = internalMutation({
   },
 });
 
-/** Suma un intento; si quedan, lo vuelve a approved en RETRY_DELAY, si no queda failed. */
+/** El permalink se pide después de publicar; si falla, el post igual queda published. */
+export const savePermalink = internalMutation({
+  args: { postId: v.id("igPosts"), permalink: v.string() },
+  handler: async (ctx, { postId, permalink }) => {
+    await ctx.db.patch(postId, { permalink });
+  },
+});
+
+/**
+ * Suma un intento; si quedan, lo vuelve a approved en RETRY_DELAY, si no queda failed.
+ * `final` lo deja failed directo (casos que necesitan que alguien revise la cuenta).
+ */
 export const markFailed = internalMutation({
-  args: { postId: v.id("igPosts"), error: v.string() },
-  handler: async (ctx, { postId, error }) => {
+  args: { postId: v.id("igPosts"), error: v.string(), final: v.optional(v.boolean()) },
+  handler: async (ctx, { postId, error, final }) => {
     const post = await getPost(ctx, postId);
     requireStatus(post, ["publishing"]);
     const attempts = post.attempts + 1;
-    const retry = attempts < MAX_ATTEMPTS;
+    const retry = !final && attempts < MAX_ATTEMPTS;
     await ctx.db.patch(postId, {
       attempts,
       lastError: error,
@@ -111,6 +122,11 @@ export const markFailed = internalMutation({
       ...(retry && { scheduledAt: Date.now() + RETRY_DELAY }),
     });
   },
+});
+
+export const getById = internalQuery({
+  args: { postId: v.id("igPosts") },
+  handler: (ctx, { postId }) => ctx.db.get(postId),
 });
 
 export const dueApproved = internalQuery({

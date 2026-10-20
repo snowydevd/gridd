@@ -89,6 +89,14 @@ describe("igPosts internos", () => {
     }
   });
 
+  test("markFailed con final queda failed sin reintento", async () => {
+    const t = setup();
+    const postId = await approved(t);
+    await t.mutation(internal.instagram.posts.markPublishing, { postId });
+    await t.mutation(internal.instagram.posts.markFailed, { postId, error: "revisar", final: true });
+    expect(await get(t, postId)).toMatchObject({ status: "failed", attempts: 1 });
+  });
+
   test("dueApproved devuelve sólo approved vencidos", async () => {
     const t = setup();
     const due = await approved(t, Date.now() - HOUR);
