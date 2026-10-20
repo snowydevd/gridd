@@ -2,7 +2,7 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { searchRadius } from "./lib/searchRadius";
-import { eventKind, eventStatus, requestStatus, role } from "./lib/validators";
+import { eventKind, eventStatus, igPostStatus, requestStatus, role } from "./lib/validators";
 
 export default defineSchema({
   ...authTables,
@@ -82,4 +82,32 @@ export default defineSchema({
   })
     .index("by_event_user", ["eventId", "userId"])
     .index("by_user", ["userId"]),
+
+  // Posts para la cuenta de Instagram de Gridd. Nunca pasan de draft a approved sin un admin.
+  igPosts: defineTable({
+    caption: v.string(),
+    // Ángulo de contenido de content/angles.ts.
+    angle: v.string(),
+    // 1 = post simple, 2–10 = carrusel.
+    images: v.array(v.id("_storage")),
+    status: igPostStatus,
+    scheduledAt: v.optional(v.number()),
+    containerId: v.optional(v.string()),
+    igMediaId: v.optional(v.string()),
+    permalink: v.optional(v.string()),
+    attempts: v.number(),
+    lastError: v.optional(v.string()),
+    publishedAt: v.optional(v.number()),
+    batchId: v.optional(v.string()),
+  })
+    .index("by_status_scheduledAt", ["status", "scheduledAt"])
+    .index("by_batch", ["batchId"]),
+
+  // Token vigente de Instagram. Sólo lo leen funciones internas.
+  igCredentials: defineTable({
+    accessToken: v.string(),
+    igUserId: v.string(),
+    expiresAt: v.number(),
+    refreshedAt: v.number(),
+  }),
 });

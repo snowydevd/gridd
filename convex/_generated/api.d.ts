@@ -14,6 +14,7 @@ import type * as cars from "../cars.js";
 import type * as events from "../events.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
+import type * as instagram_posts from "../instagram/posts.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_avatar from "../lib/avatar.js";
 import type * as lib_errors from "../lib/errors.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   events: typeof events;
   files: typeof files;
   http: typeof http;
+  "instagram/posts": typeof instagram_posts;
   "lib/auth": typeof lib_auth;
   "lib/avatar": typeof lib_avatar;
   "lib/errors": typeof lib_errors;

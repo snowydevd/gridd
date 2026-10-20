@@ -32,3 +32,13 @@ export const requestStatus = v.union(
   v.literal("approved"),
   v.literal("rejected"),
 );
+
+export const igPostStatus = v.union(
+  v.literal("draft"),
+  v.literal("approved"),
+  v.literal("publishing"),
+  v.literal("published"),
+  v.literal("failed"),
+  v.literal("rejected"),
+);
+export type IgPostStatus = typeof igPostStatus.type;
