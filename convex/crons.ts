@@ -13,4 +13,13 @@ crons.weekly(
   {},
 );
 
+// Jueves 15:00 UTC: genera los drafts de la semana siguiente para revisarlos antes del lunes.
+// No hace nada salvo que IG_AUTOGEN_ENABLED=true.
+crons.weekly(
+  "instagram: generar lote semanal",
+  { dayOfWeek: "thursday", hourUTC: 15, minuteUTC: 0 },
+  internal.instagram.generate.generateWeekly,
+  {},
+);
+
 export default crons;

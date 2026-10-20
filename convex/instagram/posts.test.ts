@@ -97,6 +97,19 @@ describe("igPosts internos", () => {
     expect(await get(t, postId)).toMatchObject({ status: "failed", attempts: 1 });
   });
 
+  test("recentPosts devuelve ángulo y caption, el más nuevo primero", async () => {
+    const t = setup();
+    const imageId = await t.run((ctx) => ctx.storage.store(new Blob(["jpeg"])));
+    for (const angle of ["a", "b", "c"]) {
+      await t.mutation(internal.instagram.posts.createDraft, { caption: `cap ${angle}`, angle, images: [imageId] });
+    }
+    const rows = await t.query(internal.instagram.posts.recentPosts, { limit: 2 });
+    expect(rows).toEqual([
+      { angle: "c", caption: "cap c" },
+      { angle: "b", caption: "cap b" },
+    ]);
+  });
+
   test("dueApproved devuelve sólo approved vencidos", async () => {
     const t = setup();
     const due = await approved(t, Date.now() - HOUR);

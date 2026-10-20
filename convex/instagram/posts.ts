@@ -124,6 +124,15 @@ export const markFailed = internalMutation({
   },
 });
 
+/** Últimos posts creados (el más nuevo primero), para rotar ángulos y no repetir captions. */
+export const recentPosts = internalQuery({
+  args: { limit: v.number() },
+  handler: async (ctx, { limit }) => {
+    const posts = await ctx.db.query("igPosts").order("desc").take(limit);
+    return posts.map((p) => ({ angle: p.angle, caption: p.caption }));
+  },
+});
+
 export const getById = internalQuery({
   args: { postId: v.id("igPosts") },
   handler: (ctx, { postId }) => ctx.db.get(postId),
