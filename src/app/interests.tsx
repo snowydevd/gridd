@@ -1,8 +1,9 @@
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { showDialog } from '@/components/dialog';
 import { Text } from '@/components/text';
 import { Button, Chip, IconButton } from '@/components/ui';
 import { Colors, Spacing } from '@/constants/theme';
@@ -43,7 +44,7 @@ function InterestsForm() {
       router.back();
     } catch (error) {
       if (__DEV__) console.log('[interests] no se pudieron guardar:', error);
-      Alert.alert('No pudimos guardar', 'Revisá tu conexión y probá de nuevo.');
+      showDialog('No pudimos guardar', 'Revisá tu conexión y probá de nuevo.');
     } finally {
       setSaving(false);
     }

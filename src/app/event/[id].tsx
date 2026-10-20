@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, Linking, Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,6 +27,8 @@ export default function EventDetailScreen() {
   // Sólo los eventos de Convex se pueden guardar; los de ejemplo no tienen _id.
   const { saved, toggle } = useSaveToggle(remote?._id);
   const attendance = useAttendanceToggle(remote?._id);
+  // La hora se toma una vez al montar: llamar a Date.now() en cada render rompe la pureza del React Compiler.
+  const [now] = useState(Date.now);
   const { isSignedIn } = useCurrentUser();
 
   if (remote === undefined && !event) {
@@ -146,7 +149,14 @@ export default function EventDetailScreen() {
           />
         )}
         <Button label="Cómo llegar" icon="navigate" onPress={openDirections} style={{ flex: 1 }} />
-        {remote && (
+        {/* El backend rechaza anotarse a un evento terminado o cancelado: ni se ofrece. */}
+        {remote && (remote.status !== 'published' || remote.endsAt < now) ? (
+          <Button
+            label={remote.status === 'cancelled' ? 'Cancelado' : attendance.attending ? 'Fuiste' : 'Terminó'}
+            disabled
+            style={{ flex: 1 }}
+          />
+        ) : remote && (
           <Button
             label={attendance.attending ? 'Cancelar' : 'Voy!'}
             icon={attendance.attending ? 'close' : 'flag'}

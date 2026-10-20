@@ -1,3 +1,4 @@
+import { showDialog } from '@/components/dialog';
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Button, Fade, Wordmark } from '@/components/ui';
@@ -8,7 +9,7 @@ import { router } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /////////// @CONVEX ///////////
@@ -38,7 +39,7 @@ export default function LoginScreen() {
       enter();
     } catch (error) {
       if (__DEV__) console.log('[auth] google falló:', error);
-      Alert.alert(
+      showDialog(
         'No pudimos entrar con Google',
         error instanceof TimeoutError ? 'Está tardando demasiado. Revisá tu conexión.' : 'Probá de nuevo en un rato.',
       );

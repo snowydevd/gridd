@@ -20,7 +20,7 @@ export function Wordmark({ size = 24 }: { size?: number }) {
 type ButtonProps = {
   label: string;
   onPress?: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   icon?: IconName;
   iconPosition?: 'start' | 'end';
   disabled?: boolean;
@@ -39,7 +39,7 @@ export function Button({
   loading,
   style,
 }: ButtonProps) {
-  const fg = variant === 'primary' ? Colors.onAccent : Colors.text;
+  const fg = variant === 'primary' || variant === 'danger' ? Colors.onAccent : Colors.text;
   // Mientras carga mantiene el color normal: el spinner ya dice que no se puede tocar.
   const dimmed = disabled && !loading;
   const iconEl = loading ? (
@@ -57,6 +57,7 @@ export function Button({
         styles.button,
         variant === 'primary' && styles.buttonPrimary,
         variant === 'secondary' && styles.buttonSecondary,
+        variant === 'danger' && styles.buttonDanger,
         dimmed && styles.buttonDisabled,
         pressed && styles.pressed,
         style,
@@ -179,6 +180,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
+  buttonDanger: { backgroundColor: Colors.error },
   buttonDisabled: { backgroundColor: Colors.raised },
   pressed: { opacity: 0.75 },
   iconButton: {

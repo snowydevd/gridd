@@ -1,8 +1,9 @@
 import * as Location from 'expo-location';
 import { useRef, useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { showDialog } from '@/components/dialog';
 import { EventRow } from '@/components/event-card';
 import { EventMap, type EventMapHandle } from '@/components/event-map';
 import { Chip, IconButton } from '@/components/ui';
@@ -34,7 +35,7 @@ export default function MapScreen() {
   const locate = async () => {
     const { status, canAskAgain } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
+      showDialog(
         'Sin acceso a tu ubicación',
         'Activalo para ver los encuentros cerca tuyo.',
         canAskAgain ? undefined : [{ text: 'Cancelar', style: 'cancel' }, { text: 'Abrir ajustes', onPress: () => Linking.openSettings() }],
@@ -49,7 +50,7 @@ export default function MapScreen() {
         (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
       map.current?.focus(position.coords, 0.06);
     } catch {
-      Alert.alert('No pudimos ubicarte', 'Revisá que el GPS esté activado.');
+      showDialog('No pudimos ubicarte', 'Revisá que el GPS esté activado.');
     }
   };
 

@@ -1,10 +1,10 @@
+import { showDialog } from "@/components/dialog";
 import { api, type Id } from "@/lib/convex";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation, useQuery } from "convex/react";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
-import { Alert } from "react-native";
 
 import type { EventKind } from "@/services/events";
 
@@ -91,7 +91,7 @@ export function useAvatarUpload() {
             await setAvatar({ storageId });
         } catch (error) {
             if (__DEV__) console.log("[avatar] no se pudo subir:", error);
-            Alert.alert("No pudimos subir la foto", "Revisá tu conexión y probá de nuevo.");
+            showDialog("No pudimos subir la foto", "Revisá tu conexión y probá de nuevo.");
         } finally {
             setUploading(false);
         }
@@ -102,7 +102,7 @@ export function useAvatarUpload() {
             await remove();
         } catch (error) {
             if (__DEV__) console.log("[avatar] no se pudo quitar:", error);
-            Alert.alert("No pudimos quitar la foto", "Revisá tu conexión y probá de nuevo.");
+            showDialog("No pudimos quitar la foto", "Revisá tu conexión y probá de nuevo.");
         }
     };
 

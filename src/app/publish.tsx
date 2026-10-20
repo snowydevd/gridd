@@ -2,7 +2,6 @@ import { Image, type ImageSource } from 'expo-image';
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { showDialog } from '@/components/dialog';
 import { Icon } from '@/components/icon';
 import { StylizedMap } from '@/components/stylized-map';
 import { Text } from '@/components/text';
@@ -92,7 +92,7 @@ function PublishForm() {
       setStep(step + 1);
       return;
     }
-    Alert.alert('¡Publicado!', 'Tu evento ya aparece en Inicio y en el mapa.');
+    showDialog('¡Publicado!', 'Tu evento ya aparece en Inicio y en el mapa.');
     router.back();
   };
 

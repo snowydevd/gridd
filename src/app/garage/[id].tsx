@@ -2,7 +2,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { showDialog } from '@/components/dialog';
 import { OptionPicker } from '@/components/option-picker';
 import { Text } from '@/components/text';
 import { Button, Card, IconButton } from '@/components/ui';
@@ -104,7 +104,7 @@ function CarForm({ car }: { car: Car | null }) {
 
   const confirmDelete = () => {
     if (!car) return;
-    Alert.alert('Eliminar auto', `¿Sacar el ${car.make} ${car.model} de tu garage?`, [
+    showDialog('Eliminar auto', `¿Sacar el ${car.make} ${car.model} de tu garage?`, [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Eliminar',

@@ -1,9 +1,10 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { showDialog } from '@/components/dialog';
 import { Icon, type IconName } from '@/components/icon';
 import { RadiusOptions } from '@/components/radius-options';
 import { Text } from '@/components/text';
@@ -68,7 +69,7 @@ export default function ProfileScreen() {
           onPress={() => {
             // Sin foto propia (aunque tenga la del login social) no hay nada que quitar.
             if (!user.hasAvatar) return void pickAndUpload();
-            Alert.alert('Foto de perfil', undefined, [
+            showDialog('Foto de perfil', undefined, [
               { text: 'Cambiar foto', onPress: () => void pickAndUpload() },
               { text: 'Quitar foto', style: 'destructive', onPress: () => void removeAvatar() },
               { text: 'Cancelar', style: 'cancel' },

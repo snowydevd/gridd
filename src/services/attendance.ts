@@ -1,7 +1,7 @@
+import { showDialog } from "@/components/dialog";
 import { api, type Id } from "@/lib/convex";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
-import { Alert } from "react-native";
 
 import { carErrorMessage } from "@/services/cars";
 import { useCurrentUser } from "@/services/user";
@@ -24,7 +24,7 @@ export function useAttendanceToggle(eventId: Id<"events"> | undefined) {
         try {
             await toggleAttendance({ eventId });
         } catch (error) {
-            Alert.alert("No pudimos anotarte", carErrorMessage(error, "Revisá tu conexión y probá de nuevo."));
+            showDialog("No pudimos anotarte", carErrorMessage(error, "Revisá tu conexión y probá de nuevo."));
         } finally {
             setPending(false);
         }

@@ -12,6 +12,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { DialogProvider } from '@/components/dialog';
 import { Colors } from '@/constants/theme';
 import { authStorage, convex } from '@/lib/convex';
 
@@ -58,6 +59,7 @@ export default function RootLayout() {
           <Stack.Screen name="login" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           <Stack.Screen name="email" />
         </Stack>
+        <DialogProvider />
       </ThemeProvider>
     </ConvexAuthProvider>
   );
