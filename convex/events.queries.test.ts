@@ -16,7 +16,7 @@ describe("events.listUpcoming", () => {
     await insertEvent(t, id, { title: "Cancelado", status: "cancelled" });
     await insertEvent(t, id, { title: "Oculto", status: "hidden" });
 
-    const result = await t.query(api.events.listUpcoming, { paginationOpts: page });
+    const result = await t.query(api.events.listUpcoming, { paginationOpts: page, now: Date.now() });
     expect(result.page.map((e) => e.title)).toEqual(["En curso", "Antes", "Después"]);
     expect(result.page[0].organizer?._id).toBe(id);
     expect(result.page[0].imageUrl).toBeNull();
@@ -27,7 +27,7 @@ describe("events.listUpcoming", () => {
     const { id } = await makeUser(t, "publisher");
     await insertEvent(t, id, { kind: "jdm", title: "JDM" });
     await insertEvent(t, id, { kind: "motos", title: "Motos" });
-    const result = await t.query(api.events.listUpcoming, { paginationOpts: page, kind: "motos" });
+    const result = await t.query(api.events.listUpcoming, { paginationOpts: page, now: Date.now(), kind: "motos" });
     expect(result.page.map((e) => e.title)).toEqual(["Motos"]);
   });
 
@@ -36,7 +36,7 @@ describe("events.listUpcoming", () => {
     const { id } = await makeUser(t, "publisher");
     const imageId = await t.run((ctx) => ctx.storage.store(new Blob(["img"])));
     await insertEvent(t, id, { imageId });
-    const result = await t.query(api.events.listUpcoming, { paginationOpts: page });
+    const result = await t.query(api.events.listUpcoming, { paginationOpts: page, now: Date.now() });
     expect(result.page[0].imageUrl).toBeTypeOf("string");
   });
 });

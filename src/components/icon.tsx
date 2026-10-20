@@ -38,6 +38,7 @@ const icons = {
   group: { ios: 'person.2', android: 'group', web: 'group' },
   verified: { ios: 'checkmark.seal.fill', android: 'verified', web: 'verified' },
   edit: { ios: 'pencil', android: 'edit', web: 'edit' },
+  flag: { ios: 'flag.checkered', android: 'sports_score', web: 'sports_score' },
 } satisfies Record<string, SymbolName>;
 
 export type IconName = keyof typeof icons;

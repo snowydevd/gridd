@@ -5,10 +5,10 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@/components/icon';
-import { Text } from '@/components/text';
 import { Colors, TabBarHeight } from '@/constants/theme';
 import { useCurrentUser } from '@/services/user';
 
+// Sólo íconos; `label` queda para los lectores de pantalla.
 const tabs: Record<string, { label: string; icon: IconName }> = {
   index: { label: 'Inicio', icon: 'home' },
   map: { label: 'Mapa', icon: 'map' },
@@ -43,9 +43,6 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
               onPress={onPress}
               style={styles.tab}>
               <Icon name={tab.icon} size={22} color={focused ? Colors.text : Colors.textSecondary} />
-              <Text variant="caption" style={[styles.label, { color: focused ? Colors.text : Colors.textSecondary }]}>
-                {tab.label}
-              </Text>
               {focused && <View style={styles.indicator} />}
             </Pressable>
           </Fragment>
@@ -80,9 +77,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
   },
-  label: { fontSize: 11 },
   indicator: {
     position: 'absolute',
     top: -1,

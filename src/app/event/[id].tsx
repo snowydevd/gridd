@@ -10,9 +10,11 @@ import { Text } from '@/components/text';
 import { Button, Fade, IconButton, Tag } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { getEvent } from '@/data/events';
+import { useAttendanceToggle } from '@/services/attendance';
 import { toCardEvent, useEventBySlug } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
 import { useSaveToggle } from '@/services/saved';
+import { useCurrentUser } from '@/services/user';
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,6 +25,8 @@ export default function EventDetailScreen() {
   const insets = useSafeAreaInsets();
   // Sólo los eventos de Convex se pueden guardar; los de ejemplo no tienen _id.
   const { saved, toggle } = useSaveToggle(remote?._id);
+  const attendance = useAttendanceToggle(remote?._id);
+  const { isSignedIn } = useCurrentUser();
 
   if (remote === undefined && !event) {
     return (
@@ -52,6 +56,8 @@ export default function EventDetailScreen() {
         : `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
     Linking.openURL(url);
   };
+
+
 
   return (
     <View style={styles.screen}>
@@ -140,6 +146,17 @@ export default function EventDetailScreen() {
           />
         )}
         <Button label="Cómo llegar" icon="navigate" onPress={openDirections} style={{ flex: 1 }} />
+        {remote && (
+          <Button
+            label={attendance.attending ? 'Cancelar' : 'Voy!'}
+            icon={attendance.attending ? 'close' : 'flag'}
+            variant={attendance.attending ? 'secondary' : 'primary'}
+            loading={attendance.loading}
+            // Un invitado no puede anotarse: primero tiene que iniciar sesión.
+            onPress={isSignedIn ? attendance.toggle : () => router.push('/login')}
+            style={{ flex: 1 }}
+          />
+        )}
       </View>
     </View>
   );

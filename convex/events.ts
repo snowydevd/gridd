@@ -164,9 +164,10 @@ const MAX_IN_BOUNDS = 200;
 
 
 export const listUpcoming = query({
-  args: { paginationOpts: paginationOptsValidator, kind: v.optional(eventKind) },
-  handler: async (ctx, { paginationOpts, kind }) => {
-    const now = Date.now();
+  // `now` lo manda el cliente y queda fijo: si se calculara acá, el rango del índice cambiaría en cada
+  // ejecución y los cursores de páginas anteriores darían InvalidCursor.
+  args: { paginationOpts: paginationOptsValidator, now: v.number(), kind: v.optional(eventKind) },
+  handler: async (ctx, { paginationOpts, now, kind }) => {
     const result = await ctx.db
       .query("events")
       .withIndex("by_status_startsAt", (q) =>

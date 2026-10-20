@@ -2,14 +2,17 @@ import type { MeetEvent } from "@/data/events";
 import { api } from "@/lib/convex";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
+import { useState } from "react";
 
 const PAGE_SIZE = 5
 
 /** Próximos eventos paginados. `kind` filtra en el servidor; `pageSize` es cuántos trae por página. */
 export function useUpcomingEvents({ kind, pageSize = PAGE_SIZE }: { kind?: EventKind; pageSize?: number } = {}){
+    // La hora se fija al montar: si cambiara entre páginas, el servidor rechazaría los cursores.
+    const [now] = useState(Date.now);
     const {results, status, loadMore} = usePaginatedQuery(
         api.events.listUpcoming, 
-        kind ? { kind } : {}, 
+        kind ? { now, kind } : { now }, 
         { initialNumItems: pageSize }
     )
 

@@ -11,6 +11,7 @@ import { RadiusOptions } from '@/components/radius-options';
 import { Text } from '@/components/text';
 import { Button, Fade, SectionHeader, Tag, Wordmark } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { useMyUpcomingEvents } from '@/services/attendance';
 import { toCardEvent, useUpcomingEvents } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
 import { searchRadiusLabel, useSearchRadius, withinRadius } from '@/services/search-radius';
@@ -28,6 +29,7 @@ export default function HomeScreen() {
   const { radius } = useSearchRadius();
   const { interests } = useInterests();
   const { events, isLoading } = useUpcomingEvents({ pageSize: HOME_EVENTS });
+  const { events: going } = useMyUpcomingEvents();
 
   // `startsAt` y `kind` van al lado de la tarjeta para ordenar con los valores del backend.
   const cards = events.map((e) => ({ kind: e.kind, startsAt: e.startsAt, card: toCardEvent(e, location) }));
@@ -91,6 +93,16 @@ export default function HomeScreen() {
             </Text>
           </View>
         </Pressable>
+      )}
+
+      {going.length > 0 && (
+        <View style={styles.section}>
+          <SectionHeader title="Vas a ir" />
+          {going.map((e) => (
+            // Un cancelado queda atenuado: sigue en la lista para que el usuario se entere.
+            <EventRow key={e._id} event={toCardEvent(e, location)} dimmed={e.status === 'cancelled'} />
+          ))}
+        </View>
       )}
 
       {forYou.length > 0 && (
