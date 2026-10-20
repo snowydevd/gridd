@@ -44,7 +44,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Gridd usa tus fotos para que elijas tu foto de perfil.",
+          "photosPermission": "Gridd usa tus fotos para que elijas tu foto de perfil y las portadas de tus eventos.",
           "cameraPermission": false,
           "microphonePermission": false
         }
