@@ -52,6 +52,8 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.canvas } }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="event/[id]" />
+          <Stack.Screen name="events/index" />
+          <Stack.Screen name="interests" />
           <Stack.Screen name="publish" options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="login" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           <Stack.Screen name="email" />

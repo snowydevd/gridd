@@ -12,7 +12,7 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { carTitle, useMyCars } from '@/services/cars';
 import { useSavedEvents } from '@/services/saved';
 import { searchRadiusLabel, useSearchRadius } from '@/services/search-radius';
-import { useCurrentUser, useUserMeets } from '@/services/user';
+import { useCurrentUser, useInterests, useUserMeets } from '@/services/user';
 
 // TODO: todavía de prueba; "Encuentros" puede salir de attendance.myEvents y "Organizados" de events.listMine.
 
@@ -25,6 +25,7 @@ export default function ProfileScreen() {
   const { events: savedEvents } = useSavedEvents();
 
   const { cars } = useMyCars();
+  const { interests } = useInterests();
   const { radius, setRadius } = useSearchRadius();
   const [radiusOpen, setRadiusOpen] = useState(false);
 
@@ -113,6 +114,12 @@ export default function ProfileScreen() {
             thumbColor={alerts ? Colors.onAccent : Colors.textSecondary}
           />
         </Row> */}
+        <Row
+          icon="check"
+          label="Intereses"
+          value={interests.length > 0 ? `${interests.length}` : undefined}
+          onPress={() => router.push('/interests')}
+        />
         <Row
           icon="pin"
           label="Ubicación"

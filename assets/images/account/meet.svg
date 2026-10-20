@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" fill="none">
+  <defs>
+    <radialGradient id="pin" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#4A4E55"/>
+      <stop offset="1" stop-color="#17181B"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="74" cy="104" rx="26" ry="6" fill="#0B0B0C" opacity="0.22"/>
+  <!-- Pin de ubicación -->
+  <path d="M74 102 C66 88 46 72 46 50 C46 33 58.5 21 74 21 C89.5 21 102 33 102 50 C102 72 82 88 74 102 Z" fill="url(#pin)"/>
+  <path d="M74 102 C82 88 102 72 102 50 C102 36 93 25 81 22 C90 28 95 38 95 50 C95 70 80 87 74 102 Z" fill="#0B0B0C" opacity="0.45"/>
+  <circle cx="74" cy="50" r="15" fill="#F2F3F5"/>
+  <!-- Bandera a cuadros dentro del pin -->
+  <path d="M68 58 V41" stroke="#0B0B0C" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M69 42 h14 v10 h-14 z" fill="#0B0B0C"/>
+  <g fill="#F2F3F5">
+    <rect x="72.5" y="42" width="3.5" height="3.3"/>
+    <rect x="79.5" y="42" width="3.5" height="3.3"/>
+    <rect x="69" y="45.3" width="3.5" height="3.4"/>
+    <rect x="76" y="45.3" width="3.5" height="3.4"/>
+    <rect x="72.5" y="48.7" width="3.5" height="3.3"/>
+    <rect x="79.5" y="48.7" width="3.5" height="3.3"/>
+  </g>
+  <!-- Brillo -->
+  <ellipse cx="58" cy="38" rx="4" ry="7" fill="#F2F3F5" opacity="0.18" transform="rotate(30 58 38)"/>
+  <!-- Destellos alrededor -->
+  <circle cx="118" cy="40" r="5" fill="#0B0B0C"/>
+  <circle cx="128" cy="62" r="3" fill="#0B0B0C" opacity="0.5"/>
+  <circle cx="30" cy="66" r="4" fill="#0B0B0C" opacity="0.5"/>
+</svg>

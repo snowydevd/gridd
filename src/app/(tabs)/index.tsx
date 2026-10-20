@@ -4,45 +4,42 @@ import { useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { EventRow, EventTile, formatKm, openEvent, WhenLine } from '@/components/event-card';
+import { AccountCards } from '@/components/account-cards';
+import { EventRow, formatKm, openEvent, WhenLine } from '@/components/event-card';
 import { Icon } from '@/components/icon';
 import { RadiusOptions } from '@/components/radius-options';
 import { Text } from '@/components/text';
-import { Button, Chip, Fade, SectionHeader, Tag, Wordmark } from '@/components/ui';
+import { Button, Fade, SectionHeader, Tag, Wordmark } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
-import { KIND_LABELS, toCardEvent, useUpcomingEvents, type EventKind } from '@/services/events';
+import { toCardEvent, useUpcomingEvents } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
 import { searchRadiusLabel, useSearchRadius, withinRadius } from '@/services/search-radius';
-import { useCurrentUser } from '@/services/user';
+import { useCurrentUser, useInterests } from '@/services/user';
 
-/** Cuántos eventos trae Inicio de una vez: destacado + lista + carrusel. */
+/** Cuántos eventos trae Inicio de una vez: el destacado y la base de "Para vos". */
 const HOME_EVENTS = 20;
-const LIST_SIZE = 3;
+const FOR_YOU_SIZE = 5;
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const [kind, setKind] = useState<EventKind | null>(null);
   const location = useLastKnownLocation();
   const { isPublisher } = useCurrentUser();
   // Radio de "Cerca tuyo" cuando se conoce la ubicación; se elige acá arriba o en el perfil.
   const { radius } = useSearchRadius();
+  const { interests } = useInterests();
   const { events, isLoading } = useUpcomingEvents({ pageSize: HOME_EVENTS });
 
-  // `kind` va al lado de la tarjeta para filtrar con el valor del backend y no con la etiqueta.
-  const cards = events.map((e) => ({ kind: e.kind, card: toCardEvent(e, location) }));
+  // `startsAt` y `kind` van al lado de la tarjeta para ordenar con los valores del backend.
+  const cards = events.map((e) => ({ kind: e.kind, startsAt: e.startsAt, card: toCardEvent(e, location) }));
   const [featured, ...rest] = cards;
 
-  // Chips sólo de las categorías que tienen eventos, para no mostrar filtros vacíos.
-  const kinds = [...new Set(rest.map((c) => c.kind))];
-
-  // Con ubicación: los cercanos, del más cerca al más lejos. Sin ubicación: los próximos por fecha.
-  const listed = rest
-    .filter((c) => !kind || c.kind === kind)
+  // "Para vos": dentro del radio (si se conoce la ubicación), primero las categorías que le interesan
+  // y, dentro de cada grupo, por fecha.
+  const liked = (kind: (typeof cards)[number]['kind']) => (interests.includes(kind) ? 0 : 1);
+  const forYou = rest
     .filter((c) => !location || withinRadius(c.card.distanceKm ?? Infinity, radius))
-    .sort((a, b) => (location ? (a.card.distanceKm ?? 0) - (b.card.distanceKm ?? 0) : 0))
-    .slice(0, LIST_SIZE);
-  const listedIds = new Set(listed.map((c) => c.card.id));
-  const later = rest.filter((c) => !listedIds.has(c.card.id));
+    .sort((a, b) => liked(a.kind) - liked(b.kind) || a.startsAt - b.startsAt)
+    .slice(0, FOR_YOU_SIZE);
 
   return (
     <ScrollView
@@ -51,7 +48,10 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Wordmark />
-        <RadiusPill />
+        <View style={styles.headerActions}>
+          <RadiusPill />
+          <ProfilePill />
+        </View>
       </View>
 
       {isLoading ? (
@@ -93,48 +93,16 @@ export default function HomeScreen() {
         </Pressable>
       )}
 
-      {kinds.length > 1 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.chipsScroll}
-          contentContainerStyle={styles.chips}>
-          <Chip label="Todos" selected={!kind} onPress={() => setKind(null)} />
-          {kinds.map((k) => (
-            <Chip key={k} label={KIND_LABELS[k]} selected={kind === k} onPress={() => setKind(k)} />
+      {forYou.length > 0 && (
+        <View style={styles.section}>
+          <SectionHeader title="Para vos" action="Ver todo" onAction={() => router.push('/events')} />
+          {forYou.map((c) => (
+            <EventRow key={c.card.id} event={c.card} />
           ))}
-        </ScrollView>
-      )}
-
-      {featured && (
-        <View style={styles.section}>
-          <SectionHeader title={location ? 'Cerca tuyo' : 'Próximos'} />
-          {listed.length > 0 ? (
-            listed.map((c) => <EventRow key={c.card.id} event={c.card} />)
-          ) : (
-            <Text tone="secondary" style={styles.empty}>
-              {kind
-                ? `No hay encuentros de ${KIND_LABELS[kind]}${location ? ' cerca' : ''} por ahora.`
-                : 'No hay más encuentros cerca por ahora.'}
-            </Text>
-          )}
         </View>
       )}
 
-      {later.length > 0 && (
-        <View style={styles.section}>
-          <SectionHeader title="Más adelante" />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.bleed}
-            contentContainerStyle={styles.carousel}>
-            {later.map((c) => (
-              <EventTile key={c.card.id} event={c.card} />
-            ))}
-          </ScrollView>
-        </View>
-      )}
+      <AccountCards />
     </ScrollView>
   );
 }
@@ -190,6 +158,36 @@ function RadiusPill() {
   );
 }
 
+/** Foto del usuario; sin foto, sus iniciales con borde punteado para invitar a subirla. */
+function ProfilePill() {
+  const { user, isSignedIn } = useCurrentUser();
+  const name = user?.name?.trim();
+  const initials = name
+    ? name
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase()
+    : null;
+
+  return (
+    <Pressable
+      onPress={() => router.push(isSignedIn ? '/profile' : '/login')}
+      style={({ pressed }) => [styles.avatar, !user?.image && styles.avatarEmpty, pressed && { opacity: 0.75 }]}
+      accessibilityRole="button"
+      accessibilityLabel={isSignedIn ? 'Ir a tu perfil' : 'Iniciar sesión'}>
+      {user?.image ? (
+        <Image source={{ uri: user.image }} style={styles.avatarImage} contentFit="cover" />
+      ) : initials ? (
+        <Text variant="label">{initials}</Text>
+      ) : (
+        <Icon name="person" size={18} color={Colors.textSecondary} />
+      )}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.canvas },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxl },
@@ -199,6 +197,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: Spacing.xl,
   },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  // Radio exacto (la mitad) y sin `overflow: 'hidden'`: en Android un radio mayor que la vista con
+  // recorte de hijos deja la foto invisible. La imagen se redondea sola, como en el perfil.
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.surface,
+  },
+  avatarImage: { width: 36, height: 36, borderRadius: 18 },
+  avatarEmpty: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: Colors.accent },
   location: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -234,10 +245,5 @@ const styles = StyleSheet.create({
   emptyCta: { alignSelf: 'stretch', marginTop: Spacing.md },
   heroTop: { padding: Spacing.lg },
   heroBody: { padding: Spacing.lg, gap: Spacing.xs },
-  chipsScroll: { marginHorizontal: -Spacing.lg, marginTop: Spacing.xl },
-  chips: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
   section: { marginTop: Spacing.xxl },
-  empty: { paddingVertical: Spacing.lg },
-  bleed: { marginHorizontal: -Spacing.lg },
-  carousel: { paddingHorizontal: Spacing.lg, gap: Spacing.md },
 });

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" fill="none">
+  <defs>
+    <linearGradient id="front" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#383B42"/>
+      <stop offset="1" stop-color="#1F2024"/>
+    </linearGradient>
+    <radialGradient id="lens" cx="0.38" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#868C96"/>
+      <stop offset="0.55" stop-color="#2A2C30"/>
+      <stop offset="1" stop-color="#0B0B0C"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="80" cy="104" rx="54" ry="8" fill="#0B0B0C" opacity="0.18"/>
+  <!-- Visor -->
+  <path d="M58 36 L60 26 L84 24.5 L94 21 L96 31 L86 35 Z" fill="#2A2C30"/>
+  <path d="M60 26 L84 24.5 L94 21 L70 22.5 Z" fill="#4A4E55"/>
+  <!-- Cuerpo: frente, costado y tapa -->
+  <path d="M30 44 L108 39 L126 31 L48 36 Z" fill="#4A4E55"/>
+  <path d="M108 39 L126 31 L126 86 L108 96 Z" fill="#17181B"/>
+  <path d="M30 44 L108 39 L108 96 L30 99 Z" fill="url(#front)"/>
+  <path d="M30 54 L108 49 L108 58 L30 63 Z" fill="#17181B"/>
+  <!-- Disparador y flash -->
+  <path d="M96 33 L104 32.5 L108 30.5 L100 31 Z" fill="#F2F3F5"/>
+  <rect x="38" y="47" width="12" height="5" rx="2" fill="#E2FF3B" transform="rotate(-3.6 44 49.5)"/>
+  <!-- Lente -->
+  <ellipse cx="72" cy="71" rx="24" ry="25" fill="#2A2C30"/>
+  <ellipse cx="70" cy="71" rx="21" ry="22" fill="#0B0B0C"/>
+  <ellipse cx="70" cy="71" rx="15" ry="16" fill="url(#lens)"/>
+  <ellipse cx="64" cy="64" rx="4.5" ry="4" fill="#F2F3F5" opacity="0.8"/>
+</svg>

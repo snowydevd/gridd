@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" fill="none">
+  <defs>
+    <radialGradient id="head" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#4A4E55"/>
+      <stop offset="1" stop-color="#17181B"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#383B42"/>
+      <stop offset="1" stop-color="#17181B"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="72" cy="106" rx="50" ry="7" fill="#0B0B0C" opacity="0.18"/>
+  <!-- Persona -->
+  <path d="M28 104 C28 80 46 64 70 64 C94 64 112 80 112 104 Z" fill="url(#body)"/>
+  <circle cx="70" cy="40" r="20" fill="url(#head)"/>
+  <ellipse cx="63" cy="32" rx="6" ry="4" fill="#F2F3F5" opacity="0.18" transform="rotate(-30 63 32)"/>
+  <!-- Insignia de sumar -->
+  <circle cx="114" cy="74" r="19" fill="#0B0B0C"/>
+  <circle cx="114" cy="72" r="18" fill="#F2F3F5"/>
+  <path d="M114 63 V81 M105 72 H123" stroke="#0B0B0C" stroke-width="4" stroke-linecap="round"/>
+</svg>
