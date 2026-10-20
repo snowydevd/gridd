@@ -28,7 +28,7 @@ const TEMPLATE_GUIDE: Record<TemplateName, string> = {
   feature:
     "feature: kicker de 1 o 2 palabras (ej. \"Mapa\", \"Organizadores\"); title de máx. 40 caracteres con 1 palabra entre *asteriscos*; bullets: 2 o 3 frases cortas (máx. 60 caracteres cada una).",
   carousel:
-    "carousel: cover (title máx. 50 caracteres con *asteriscos* en 1 palabra, subtitle corto); slides: 2 a 4, cada una con title (máx. 40 caracteres) y body (máx. 160); cta: title de cierre (máx. 40) y subtitle corto. El botón \"Descargá Gridd\" ya va en la imagen.",
+    "carousel: cover (title máx. 50 caracteres con *asteriscos* en 1 palabra, subtitle corto); slides: 2 a 4, cada una con title (máx. 40 caracteres) y body (máx. 160), sin repetir el título en el body; cta: title de cierre (máx. 40) y subtitle corto. El botón \"Descargá Gridd\" y gridd.app ya van en la imagen: no los repitas en el subtitle.",
 };
 
 const SYSTEM = `Escribís posts para la cuenta de Instagram de Gridd, una app de car meets de Uruguay.
@@ -44,7 +44,10 @@ Caption:
 - Último párrafo de texto: la invitación a descargar Gridd, mencionando gridd.app.
 - Después, en un párrafo aparte, entre 3 y 8 hashtags relevantes (car meets, autos, Uruguay). Sin repetir y sin spam.
 
-Los textos de la imagen tienen que ser cortos: se leen en el celular de un vistazo.`;
+Textos de la imagen:
+- Cortos: se leen en el celular de un vistazo.
+- Las *palabras entre asteriscos* salen resaltadas en fluor. Resaltá 1 o 2 palabras con peso (el sustantivo o verbo clave), nunca artículos, preposiciones ni pronombres.
+- Para citar secciones de la app usá comillas dobles ("Para vos").`;
 
 function userPrompt(opts: {
   angle: Angle;

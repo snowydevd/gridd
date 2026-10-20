@@ -5,8 +5,8 @@ import { C, SITE } from "./theme";
 
 export const carouselData = v.object({
   cover: v.object({ title: v.string(), subtitle: v.optional(v.string()) }),
-  // 2–4 slides intermedias.
-  slides: v.array(v.object({ title: v.string(), body: v.string() })),
+  // 2–4 slides intermedias; `kicker` es una etiqueta opcional (ej. "Paso 1").
+  slides: v.array(v.object({ kicker: v.optional(v.string()), title: v.string(), body: v.string() })),
   cta: v.object({ title: v.string(), subtitle: v.optional(v.string()) }),
 });
 export type CarouselData = typeof carouselData.type;
@@ -46,7 +46,7 @@ export function carousel(data: CarouselData) {
       header(i + 2, total),
       div(
         { flexDirection: "column", gap: 44, marginTop: "auto", marginBottom: "auto" },
-        kicker(`Paso ${i + 1}`),
+        slide.kicker && kicker(slide.kicker),
         richText(slide.title, fitSize(slide.title, [[96, 24], [80, 44]], 68)),
         h("span", { style: { fontSize: 42, fontWeight: 500, lineHeight: 1.35, color: C.muted } }, slide.body),
       ),
@@ -58,7 +58,9 @@ export function carousel(data: CarouselData) {
     div(
       { flexDirection: "column", gap: 48, marginTop: "auto", marginBottom: "auto", alignItems: "flex-start" },
       richText(data.cta.title, fitSize(data.cta.title, [[112, 28], [96, 48]], 80)),
+      // El sitio ya va abajo del botón: no lo repetimos en el subtítulo.
       data.cta.subtitle &&
+        !data.cta.subtitle.toLowerCase().includes(SITE) &&
         h("span", { style: { fontSize: 40, fontWeight: 500, lineHeight: 1.3, color: C.muted } }, data.cta.subtitle),
       ctaPill(undefined, 48),
       h("span", { style: { fontSize: 34, fontWeight: 500, color: C.muted } }, SITE),

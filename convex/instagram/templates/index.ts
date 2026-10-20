@@ -74,6 +74,7 @@ export function checkTemplateData(raw: unknown): TemplateInput {
       text(cover.subtitle, "cover.subtitle", 120, true);
       list(data.slides, "slides", 2, 4).forEach((s, i) => {
         const slide = obj(s, `slides[${i}]`);
+        text(slide.kicker, `slides[${i}].kicker`, 24, true);
         text(slide.title, `slides[${i}].title`, 60);
         text(slide.body, `slides[${i}].body`, 200);
       });

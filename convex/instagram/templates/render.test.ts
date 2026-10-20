@@ -4,7 +4,7 @@ import { describe, expect, test } from "vitest";
 import { SAMPLES } from "./samples";
 import { renderSlides } from "./render";
 import { HEIGHT, WIDTH } from "./theme";
-import { checkTemplateData } from "./index";
+import { buildSlides, checkTemplateData } from "./index";
 
 function decode(buf: Uint8Array) {
   return jpeg.decode(buf, { useTArray: true });
@@ -63,5 +63,36 @@ describe("checkTemplateData", () => {
       }),
     ).toThrow(/slides/);
     expect(() => checkTemplateData({ template: "headline", data: { headline: "  " } })).toThrow(/headline/);
+  });
+});
+
+describe("carrusel", () => {
+  const texts = (el: unknown): string[] =>
+    typeof el === "string"
+      ? [el]
+      : Array.isArray(el)
+        ? el.flatMap(texts)
+        : el && typeof el === "object" && "props" in el
+          ? texts((el as { props: { children?: unknown } }).props.children)
+          : [];
+
+  test("no repite gridd.app si el subtítulo del cierre ya lo dice", () => {
+    const slides = buildSlides({
+      template: "carousel",
+      data: { ...SAMPLES.carousel.data, cta: { title: "Bajate *Gridd*", subtitle: "gridd.app" } },
+    });
+    const last = texts(slides[slides.length - 1]);
+    expect(last.filter((t) => t.toLowerCase().includes("gridd.app"))).toHaveLength(1);
+  });
+
+  test("los slides sólo llevan etiqueta si la piden", () => {
+    const data = SAMPLES.carousel.data;
+    const sinEtiqueta = buildSlides({ template: "carousel", data });
+    expect(texts(sinEtiqueta[1]).join(" ")).not.toMatch(/Paso/);
+    const conEtiqueta = buildSlides({
+      template: "carousel",
+      data: { ...data, slides: data.slides.map((s, i) => ({ ...s, kicker: `Paso ${i + 1}` })) },
+    });
+    expect(texts(conEtiqueta[1]).join(" ")).toMatch(/Paso 1/);
   });
 });
