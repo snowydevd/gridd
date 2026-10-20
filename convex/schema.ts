@@ -19,6 +19,8 @@ export default defineSchema({
     role: v.optional(role),
     // Rango de "Cerca tuyo"; sin valor se usa DEFAULT_SEARCH_RADIUS.
     searchRadius: v.optional(searchRadius),
+    // Categorías que le gustan, para ordenar "Para vos" en Inicio. Sin valor = ninguna.
+    interests: v.optional(v.array(eventKind)),
     updatedAt: v.optional(v.number()),
   })
     .index("email", ["email"])

@@ -4,7 +4,7 @@ import { currentUser, requireUser, roleOf } from "./lib/auth";
 import { fail } from "./lib/errors";
 import { validateName } from "./lib/validation";
 import { DEFAULT_SEARCH_RADIUS, searchRadius } from "./lib/searchRadius";
-import { role } from "./lib/validators";
+import { eventKind, role } from "./lib/validators";
 
 export const me = query({
   args: {},
@@ -18,6 +18,7 @@ export const me = query({
       image: user.image ?? null,
       role: roleOf(user),
       searchRadius: user.searchRadius ?? DEFAULT_SEARCH_RADIUS,
+      interests: user.interests ?? [],
     };
   },
 });
@@ -36,6 +37,16 @@ export const setSearchRadius = mutation({
   handler: async (ctx, { radius }) => {
     const user = await requireUser(ctx);
     await ctx.db.patch(user._id, { searchRadius: radius, updatedAt: Date.now() });
+    return null;
+  },
+});
+
+/** Reemplaza la lista entera de intereses; los repetidos se guardan una sola vez. */
+export const setInterests = mutation({
+  args: { interests: v.array(eventKind) },
+  handler: async (ctx, { interests }) => {
+    const user = await requireUser(ctx);
+    await ctx.db.patch(user._id, { interests: [...new Set(interests)], updatedAt: Date.now() });
     return null;
   },
 });

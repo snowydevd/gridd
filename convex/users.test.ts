@@ -66,6 +66,44 @@ describe("users.setSearchRadius", () => {
   });
 });
 
+describe("users.setInterests", () => {
+  test("por defecto no hay intereses", async () => {
+    const t = setup();
+    const { as } = await makeUser(t);
+    expect((await as.query(api.users.me, {}))?.interests).toEqual([]);
+  });
+
+  test("guarda la lista sin repetidos y la reemplaza entera", async () => {
+    const t = setup();
+    const { id, as } = await makeUser(t);
+    await as.mutation(api.users.setInterests, { interests: ["jdm", "clasicos", "jdm"] });
+    expect((await as.query(api.users.me, {}))?.interests).toEqual(["jdm", "clasicos"]);
+    await as.mutation(api.users.setInterests, { interests: ["pista"] });
+    expect((await as.query(api.users.me, {}))?.interests).toEqual(["pista"]);
+    expect((await t.run((ctx) => ctx.db.get(id)))?.updatedAt).toBeTypeOf("number");
+  });
+
+  test("se puede vaciar", async () => {
+    const t = setup();
+    const { as } = await makeUser(t);
+    await as.mutation(api.users.setInterests, { interests: ["jdm"] });
+    await as.mutation(api.users.setInterests, { interests: [] });
+    expect((await as.query(api.users.me, {}))?.interests).toEqual([]);
+  });
+
+  test("rechaza categorías que no existen", async () => {
+    const t = setup();
+    const { as } = await makeUser(t);
+    // @ts-expect-error "f1" no es un kind válido
+    await expect(as.mutation(api.users.setInterests, { interests: ["f1"] })).rejects.toThrow();
+  });
+
+  test("anónimo no puede", async () => {
+    const t = setup();
+    await expectCode(t.mutation(api.users.setInterests, { interests: ["jdm"] }), "UNAUTHENTICATED");
+  });
+});
+
 describe("users.setRole (internal)", () => {
   test("cambia el rol buscando por email, sin importar mayúsculas", async () => {
     const t = setup();
