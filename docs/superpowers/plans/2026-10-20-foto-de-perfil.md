@@ -192,7 +192,7 @@ export function useAvatarUpload() {
 }
 ```
 
-- [ ] Probar en Android que `fetch(photo.uri).blob()` funcione con `file://`. Si falla, usar `File` de `expo-file-system` (SDK 57), que se puede pasar directo como `body`.
+- [ ] Probado en Android: `fetch(photo.uri).blob()` funciona con `file://`, pero el blob viene **sin tipo**, y React Native manda ese tipo vacío como `Content-Type`, pisando el header. Convex responde `400 BadHeader`. Solución: `new Blob([file], { type: "image/jpeg" })`.
 - [ ] No hace falta `requestMediaLibraryPermissionsAsync`: según los docs de SDK 57, abrir la galería para fotos no pide permiso.
 
 ## Task 6: UI del perfil

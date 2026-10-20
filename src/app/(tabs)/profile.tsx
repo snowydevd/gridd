@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@/components/icon';
@@ -12,7 +12,7 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { carTitle, useMyCars } from '@/services/cars';
 import { useSavedEvents } from '@/services/saved';
 import { searchRadiusLabel, useSearchRadius } from '@/services/search-radius';
-import { useCurrentUser, useInterests, useUserMeets } from '@/services/user';
+import { useAvatarUpload, useCurrentUser, useInterests, useUserMeets } from '@/services/user';
 
 // TODO: todavía de prueba; "Encuentros" puede salir de attendance.myEvents y "Organizados" de events.listMine.
 
@@ -27,6 +27,7 @@ export default function ProfileScreen() {
   const { cars } = useMyCars();
   const { interests } = useInterests();
   const { radius, setRadius } = useSearchRadius();
+  const { pickAndUpload, removeAvatar, isUploading } = useAvatarUpload();
   const [radiusOpen, setRadiusOpen] = useState(false);
 
   const stats = [
@@ -60,11 +61,34 @@ export default function ProfileScreen() {
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.xl }]}>
       <View style={styles.identity}>
-        <Image
-          source={user.image ? { uri: user.image } : require('@/assets/images/meets/avatar.jpg')}
-          style={styles.avatar}
-          contentFit="cover"
-        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Cambiar foto de perfil"
+          disabled={isUploading}
+          onPress={() => {
+            // Sin foto propia (aunque tenga la del login social) no hay nada que quitar.
+            if (!user.hasAvatar) return void pickAndUpload();
+            Alert.alert('Foto de perfil', undefined, [
+              { text: 'Cambiar foto', onPress: () => void pickAndUpload() },
+              { text: 'Quitar foto', style: 'destructive', onPress: () => void removeAvatar() },
+              { text: 'Cancelar', style: 'cancel' },
+            ]);
+          }}
+          style={styles.avatarWrap}>
+          <Image
+            source={user.image ? { uri: user.image } : require('@/assets/images/meets/avatar.jpg')}
+            style={styles.avatar}
+            contentFit="cover"
+          />
+          {isUploading && (
+            <View style={[styles.avatar, styles.avatarBusy]}>
+              <ActivityIndicator color={Colors.accent} />
+            </View>
+          )}
+          <View style={styles.avatarBadge}>
+            <Icon name="camera" size={16} color={Colors.canvas} />
+          </View>
+        </Pressable>
         <View style={styles.nameRow}>
           <Text variant="title">{user.name ?? 'Sin nombre'}</Text>
           {isPublisher && <Icon name="verified" size={18} color={Colors.accent} />}
@@ -189,13 +213,32 @@ const styles = StyleSheet.create({
   guestText: { textAlign: 'center' },
   guestButton: { alignSelf: 'stretch', marginTop: Spacing.md },
   identity: { alignItems: 'center', gap: Spacing.xs },
+  avatarWrap: { marginBottom: Spacing.md },
   avatar: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    marginBottom: Spacing.md,
     borderWidth: 2,
     borderColor: Colors.border,
+  },
+  avatarBusy: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  avatarBadge: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.accent,
+    borderWidth: 2,
+    borderColor: Colors.canvas,
   },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   stats: { flexDirection: 'row' },

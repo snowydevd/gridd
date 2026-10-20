@@ -40,6 +40,14 @@
         {
           "locationWhenInUsePermission": "Gridd usa tu ubicación para mostrarte los encuentros cerca tuyo."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Gridd usa tus fotos para que elijas tu foto de perfil.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {

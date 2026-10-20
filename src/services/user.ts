@@ -1,6 +1,8 @@
-import { api } from "@/lib/convex";
+import { api, type Id } from "@/lib/convex";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation, useQuery } from "convex/react";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import { Alert } from "react-native";
 
@@ -52,12 +54,57 @@ export function useInterests() {
     return { interests: user?.interests ?? NO_INTERESTS, setInterests };
 }
 
-/** Elige una foto de la galería, la sube y la guarda como foto de perfil. */
+const AVATAR_SIZE = 512;
+
+/** Elige una foto de la galería, la recorta cuadrada, la achica y la guarda como foto de perfil. */
 export function useAvatarUpload() {
-    // TODO(backend): expo-image-picker (recorte cuadrado, calidad ~0.7) → `files.generateAvatarUploadUrl`
-    // → `users.setAvatar`. Hasta que exista el backend sólo avisa.
+    const generateUploadUrl = useMutation(api.files.generateAvatarUploadUrl);
+    const setAvatar = useMutation(api.users.setAvatar);
+    const remove = useMutation(api.users.removeAvatar);
+    const [isUploading, setUploading] = useState(false);
+
     const pickAndUpload = async () => {
-        Alert.alert("Muy pronto", "Todavía no se puede subir la foto de perfil.");
+        const picked = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [1, 1], // Android; en iOS el recorte ya es cuadrado.
+            quality: 1, // Se comprime una sola vez, al achicarla.
+        });
+        if (picked.canceled) return;
+
+        setUploading(true);
+        try {
+            // ~50–150 KB: alcanza para mostrarla en el perfil y no gasta datos.
+            const rendered = await ImageManipulator.manipulate(picked.assets[0].uri)
+                .resize({ width: AVATAR_SIZE })
+                .renderAsync();
+            const photo = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.8 });
+
+            const uploadUrl = await generateUploadUrl();
+            // En React Native el blob de un file:// viene sin tipo, y fetch manda ese tipo vacío como
+            // Content-Type (pisa el header). Convex lo rechaza con 400, así que se le pone el tipo al blob.
+            const file = await (await fetch(photo.uri)).blob();
+            const body = new Blob([file], { type: "image/jpeg" });
+            const res = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": "image/jpeg" }, body });
+            if (!res.ok) throw new Error(`upload ${res.status}`);
+            const { storageId } = (await res.json()) as { storageId: Id<"_storage"> };
+            await setAvatar({ storageId });
+        } catch (error) {
+            if (__DEV__) console.log("[avatar] no se pudo subir:", error);
+            Alert.alert("No pudimos subir la foto", "Revisá tu conexión y probá de nuevo.");
+        } finally {
+            setUploading(false);
+        }
     };
-    return { pickAndUpload, isUploading: false };
+
+    const removeAvatar = async () => {
+        try {
+            await remove();
+        } catch (error) {
+            if (__DEV__) console.log("[avatar] no se pudo quitar:", error);
+            Alert.alert("No pudimos quitar la foto", "Revisá tu conexión y probá de nuevo.");
+        }
+    };
+
+    return { pickAndUpload, removeAvatar, isUploading };
 }
