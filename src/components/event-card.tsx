@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { Tag } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
-import type { MeetEvent } from '@/data/events';
+import type { MeetEvent } from '@/services/events';
 
 /** When line: accent only when the meet is today (the 10% accent rule). */
 export function WhenLine({ event }: { event: MeetEvent }) {

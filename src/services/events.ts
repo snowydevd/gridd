@@ -1,8 +1,8 @@
-import type { MeetEvent } from "@/data/events";
 import { api } from "@/lib/convex";
 import { uploadImage } from "@/lib/upload";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import type { ImageSource } from "expo-image";
 import { useEffect, useState } from "react";
 
 import { DAY, UY_BOUNDS } from "../../convex/lib/validation";
@@ -81,6 +81,34 @@ export function useEventBySlug(slug: string | undefined) {
 
 
 // ---------- Adaptador Convex → tarjetas ----------
+
+/** Lo que muestran las tarjetas y el detalle de un evento. */
+export type MeetEvent = {
+    id: string;
+    title: string;
+    /** Etiqueta de la categoría (`KIND_LABELS`). */
+    category: string;
+    /** Short day label shown on cards: "Hoy", "Sáb 15", "Oct 28"... */
+    day: string;
+    /** Long date for the detail screen. */
+    date: string;
+    time: string;
+    endTime?: string;
+    isToday?: boolean;
+    place: string;
+    area: string;
+    /** Sin la ubicación del usuario no se puede calcular. */
+    distanceKm?: number;
+    going: number;
+    image: ImageSource;
+    description: string;
+    organizer: { name: string; initials: string; verified?: boolean };
+    /** Position on the stylized map, as 0–1 fractions of its width/height. */
+    map: { x: number; y: number };
+    /** Ubicación real, para el mapa nativo. */
+    coords: { latitude: number; longitude: number };
+    past?: boolean;
+};
 
 export type EventView = FunctionReturnType<typeof api.events.listUpcoming>["page"][number];
 export type EventKind = EventView["kind"];

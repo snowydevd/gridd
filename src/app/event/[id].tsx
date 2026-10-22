@@ -10,7 +10,6 @@ import { Icon, type IconName } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Button, Fade, IconButton, Tag } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
-import { getEvent } from '@/data/events';
 import { useAttendanceToggle } from '@/services/attendance';
 import { toCardEvent, useEventBySlug } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
@@ -19,12 +18,11 @@ import { useCurrentUser } from '@/services/user';
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  // Los eventos de Convex llegan por slug; los de ejemplo (mapa, Guardados) siguen en src/data/events.ts.
+  // Los eventos de Convex llegan por slug.
   const remote = useEventBySlug(id);
   const location = useLastKnownLocation();
-  const event = remote ? toCardEvent(remote, location) : getEvent(id);
+  const event = remote ? toCardEvent(remote, location) : null;
   const insets = useSafeAreaInsets();
-  // Sólo los eventos de Convex se pueden guardar; los de ejemplo no tienen _id.
   const { saved, toggle } = useSaveToggle(remote?._id);
   const attendance = useAttendanceToggle(remote?._id);
   // La hora se toma una vez al montar: llamar a Date.now() en cada render rompe la pureza del React Compiler.
