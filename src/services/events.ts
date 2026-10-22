@@ -5,6 +5,8 @@ import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { ImageSource } from "expo-image";
 import { useEffect, useState } from "react";
 
+import { useCurrentUser } from "@/services/user";
+
 import { DAY, UY_BOUNDS } from "../../convex/lib/validation";
 
 const PAGE_SIZE = 5
@@ -72,6 +74,13 @@ export function usePublishEvent() {
 }
 
 /** Un evento por slug (`null` si no existe, `undefined` mientras carga). */
+/** Eventos que organizó el usuario, del más nuevo al más viejo (vacío si no es publisher). */
+export function useMyEvents() {
+    const { isPublisher } = useCurrentUser();
+    const events = useQuery(api.events.listMine, isPublisher ? {} : "skip");
+    return { events: events ?? [], isLoading: isPublisher && events === undefined };
+}
+
 /** Cancela un evento propio. El backend exige ser el organizador y que esté publicado. */
 export function useCancelEvent() {
     return useMutation(api.events.cancel);
@@ -97,6 +106,8 @@ export type MeetEvent = {
     day: string;
     /** Long date for the detail screen. */
     date: string;
+    /** Inicio en ms, para ordenar. */
+    startsAt: number;
     time: string;
     endTime?: string;
     isToday?: boolean;
@@ -198,6 +209,7 @@ export function toCardEvent(event: EventView, userLocation?: LatLng | null, now 
         title: event.title,
         category: KIND_LABELS[event.kind],
         ...when,
+        startsAt: event.startsAt,
         time: formatTime(event.startsAt),
         endTime: event.noEndTime ? undefined : formatTime(event.endsAt),
         // Convex guarda un solo texto de lugar.

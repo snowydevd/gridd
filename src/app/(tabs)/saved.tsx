@@ -8,7 +8,7 @@ import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Button } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
-import { toCardEvent } from '@/services/events';
+import { toCardEvent, useMyEvents, type MeetEvent } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
 import { useSavedEvents } from '@/services/saved';
 import { useCurrentUser } from '@/services/user';
@@ -17,13 +17,25 @@ type Segment = 'saved' | 'mine';
 
 export default function SavedScreen() {
   const insets = useSafeAreaInsets();
-  const { events, isLoading } = useSavedEvents();
+  const saved = useSavedEvents();
+  const mine = useMyEvents();
   const location = useLastKnownLocation();
   const [segment, setSegment] = useState<Segment>('saved');
 
-  const list = segment === 'saved' ? events.map((e) => toCardEvent(e, location)) : [];
-  const upcoming = list.filter((e) => !e.past);
-  const past = list.filter((e) => e.past);
+  const { events, isLoading } = segment === 'saved' ? saved : mine;
+  const sections: Section[] =
+    segment === 'saved'
+      ? splitByDate(events.map((e) => toCardEvent(e, location)))
+      : [
+          // Los cancelados (u ocultos por un admin) van aparte para no confundirlos con los próximos.
+          ...splitByDate(events.filter((e) => e.status === 'published').map((e) => toCardEvent(e, location))),
+          {
+            label: 'Cancelados',
+            events: events.filter((e) => e.status !== 'published').map((e) => toCardEvent(e, location)),
+            dimmed: true,
+          },
+        ];
+  const isEmpty = sections.every((s) => s.events.length === 0);
 
   return (
     <ScrollView
@@ -38,36 +50,38 @@ export default function SavedScreen() {
         <SegmentButton label="Mis eventos" active={segment === 'mine'} onPress={() => setSegment('mine')} />
       </View>
 
-      {segment === 'saved' && isLoading ? (
+      {isLoading ? (
         <ActivityIndicator color={Colors.accent} style={styles.loading} />
-      ) : list.length === 0 ? (
+      ) : isEmpty ? (
         <EmptyState segment={segment} />
       ) : (
-        <>
-          {upcoming.length > 0 && (
-            <View style={styles.section}>
-              <Text variant="overline" tone="secondary" style={styles.sectionLabel}>
-                Próximos
-              </Text>
-              {upcoming.map((e) => (
-                <EventRow key={e.id} event={e} />
-              ))}
-            </View>
-          )}
-          {past.length > 0 && (
-            <View style={styles.section}>
-              <Text variant="overline" tone="secondary" style={styles.sectionLabel}>
-                Pasados
-              </Text>
-              {past.map((e) => (
-                <EventRow key={e.id} event={e} dimmed />
-              ))}
-            </View>
-          )}
-        </>
+        sections.map(
+          (section) =>
+            section.events.length > 0 && (
+              <View key={section.label} style={styles.section}>
+                <Text variant="overline" tone="secondary" style={styles.sectionLabel}>
+                  {section.label}
+                </Text>
+                {section.events.map((e) => (
+                  <EventRow key={e.id} event={e} dimmed={section.dimmed} />
+                ))}
+              </View>
+            ),
+        )
       )}
     </ScrollView>
   );
+}
+
+type Section = { label: string; events: MeetEvent[]; dimmed?: boolean };
+
+/** Próximos del más cercano al más lejano; pasados del más reciente al más viejo. */
+function splitByDate(list: MeetEvent[]): Section[] {
+  const byStart = (a: MeetEvent, b: MeetEvent) => a.startsAt - b.startsAt;
+  return [
+    { label: 'Próximos', events: list.filter((e) => !e.past).sort(byStart) },
+    { label: 'Pasados', events: list.filter((e) => e.past).sort((a, b) => byStart(b, a)), dimmed: true },
+  ];
 }
 
 function SegmentButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
