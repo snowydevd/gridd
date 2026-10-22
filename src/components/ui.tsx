@@ -123,6 +123,22 @@ export function Chip({ label, selected, onPress, icon }: ChipProps) {
   );
 }
 
+export function Checkbox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      onPress={() => onChange(!checked)}
+      hitSlop={8}
+      style={({ pressed }) => [styles.checkbox, pressed && styles.pressed]}>
+      <View style={[styles.checkboxBox, checked && styles.checkboxBoxChecked]}>
+        {checked && <Icon name="check" size={14} color={Colors.onAccent} />}
+      </View>
+      <Text variant="label">{label}</Text>
+    </Pressable>
+  );
+}
+
 /** Small outlined tag, e.g. the event category. */
 export function Tag({ label, tone = 'default' }: { label: string; tone?: 'default' | 'accent' }) {
   return (
@@ -207,6 +223,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   chipSelected: { backgroundColor: Colors.text, borderColor: Colors.text },
+  checkbox: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, alignSelf: 'flex-start' },
+  checkboxBox: {
+    width: 22,
+    height: 22,
+    borderRadius: Radius.sm,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxBoxChecked: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   tag: {
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.sm,

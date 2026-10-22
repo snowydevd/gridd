@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { DAY, HOUR, type EventInput, validateEventInput } from "./validation";
+import { DAY, HOUR, NO_END_DURATION, type EventInput, validateEventInput } from "./validation";
 
 const NOW = Date.UTC(2026, 9, 6, 12);
 const base: EventInput = {
@@ -58,5 +58,22 @@ describe("validateEventInput", () => {
 
   test("dura exactamente 7 días: válido", () => {
     expect(check({ endsAt: NOW + DAY + 7 * DAY })).toBe("OK");
+  });
+
+  test("sin hora de fin: endsAt queda en inicio + NO_END_DURATION", () => {
+    const out = validateEventInput({ ...base, endsAt: undefined, noEndTime: true }, NOW, { dateChanged: true });
+    expect(out.endsAt).toBe(base.startsAt + NO_END_DURATION);
+    expect(out.noEndTime).toBe(true);
+  });
+
+  test("sin hora de fin: ignora el endsAt que venga", () => {
+    const out = validateEventInput({ ...base, endsAt: base.startsAt - HOUR, noEndTime: true }, NOW, {
+      dateChanged: true,
+    });
+    expect(out.endsAt).toBe(base.startsAt + NO_END_DURATION);
+  });
+
+  test("falta la hora de fin y no se marcó noEndTime → INVALID", () => {
+    expect(check({ endsAt: undefined })).toBe("INVALID");
   });
 });

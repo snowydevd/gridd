@@ -55,6 +55,8 @@ export default defineSchema({
     kind: eventKind,
     startsAt: v.number(),
     endsAt: v.number(),
+    /** El organizador no dio hora de fin; `endsAt` es estimado (ver NO_END_DURATION). */
+    noEndTime: v.optional(v.boolean()),
     placeName: v.string(),
     lat: v.number(),
     lon: v.number(),

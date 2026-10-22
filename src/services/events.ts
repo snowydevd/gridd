@@ -194,7 +194,7 @@ export function toCardEvent(event: EventView, userLocation?: LatLng | null, now 
         category: KIND_LABELS[event.kind],
         ...when,
         time: formatTime(event.startsAt),
-        endTime: formatTime(event.endsAt),
+        endTime: event.noEndTime ? undefined : formatTime(event.endsAt),
         // Convex guarda un solo texto de lugar.
         place: event.placeName,
         area: event.placeName,

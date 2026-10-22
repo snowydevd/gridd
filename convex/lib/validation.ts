@@ -3,6 +3,8 @@ import { fail } from "./errors";
 
 export const HOUR = 60 * 60 * 1000;
 export const DAY = 24 * HOUR;
+/** Cuánto se da por durado un evento sin hora de fin: así sigue visible esa noche y después pasa solo. */
+export const NO_END_DURATION = 6 * HOUR;
 
 /** Uruguay con margen. */
 export const UY_BOUNDS = { minLat: -35.5, maxLat: -29.5, minLon: -59.0, maxLon: -52.5 };
@@ -44,12 +46,16 @@ export type EventInput = {
   description: string;
   kind: Doc<"events">["kind"];
   startsAt: number;
-  endsAt: number;
+  /** Se ignora si `noEndTime`: el fin se calcula con `NO_END_DURATION`. */
+  endsAt?: number;
+  noEndTime?: boolean;
   placeName: string;
   lat: number;
   lon: number;
   imageId?: Id<"_storage">;
 };
+
+export type ValidEventInput = EventInput & { endsAt: number; noEndTime: boolean };
 
 function between(n: number, min: number, max: number) {
   return Number.isFinite(n) && n >= min && n <= max;
@@ -63,7 +69,7 @@ export function validateEventInput(
   input: EventInput,
   now: number,
   { dateChanged }: { dateChanged: boolean },
-): EventInput {
+): ValidEventInput {
   const title = input.title.trim();
   const description = input.description.trim();
   const placeName = input.placeName.trim();
@@ -80,10 +86,15 @@ export function validateEventInput(
   if (dateChanged && input.startsAt <= now) {
     fail("INVALID", "La fecha de inicio tiene que ser en el futuro.");
   }
-  if (input.endsAt <= input.startsAt) {
+  const noEndTime = input.noEndTime ?? false;
+  const endsAt = noEndTime ? input.startsAt + NO_END_DURATION : input.endsAt;
+  if (endsAt === undefined) {
+    fail("INVALID", "Falta la hora de fin.");
+  }
+  if (endsAt <= input.startsAt) {
     fail("INVALID", "El evento tiene que terminar después de empezar.");
   }
-  if (input.endsAt - input.startsAt > 7 * DAY) {
+  if (endsAt - input.startsAt > 7 * DAY) {
     fail("INVALID", "Un evento no puede durar más de 7 días.");
   }
   if (
@@ -92,5 +103,5 @@ export function validateEventInput(
   ) {
     fail("INVALID", "El lugar tiene que estar en Uruguay.");
   }
-  return { ...input, title, description, placeName };
+  return { ...input, title, description, placeName, endsAt, noEndTime };
 }

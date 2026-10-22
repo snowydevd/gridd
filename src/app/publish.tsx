@@ -15,11 +15,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DateTimeField } from '@/components/date-time-field';
 import { showDialog } from '@/components/dialog';
 import { EventMap, type EventMapHandle } from '@/components/event-map';
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
-import { Button, Chip, Fade, IconButton, Tag } from '@/components/ui';
+import { Button, Checkbox, Chip, Fade, IconButton, Tag } from '@/components/ui';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import { carErrorMessage } from '@/services/cars';
 import { EVENT_KINDS, KIND_LABELS, usePublishEvent, type EventKind } from '@/services/events';
@@ -30,9 +31,6 @@ import { UY_BOUNDS } from '../../convex/lib/validation';
 const STEPS = ['Evento', 'Cuándo', 'Dónde', 'Portada'] as const;
 const REVIEW = STEPS.length;
 
-const times = ['18:00', '19:00', '20:00', '20:30', '21:00', '22:00'];
-const durations = [2, 3, 4, 6];
-
 // Montevideo; el mapa arranca acá si no se conoce la ubicación del organizador.
 const INITIAL_REGION = { latitude: -34.88, longitude: -56.16, latitudeDelta: 0.15, longitudeDelta: 0.15 };
 const PLACE_DELTA = 0.01;
@@ -42,25 +40,25 @@ const DEFAULT_COVER = require('@/assets/images/meets/midnight-rambla.jpg');
 const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
-function nextDays(count: number) {
-  const today = new Date();
-  return Array.from({ length: count }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    return d;
-  });
-}
-
 function formatDay(d: Date) {
   return `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]}`;
 }
 
-/** Día elegido + "HH:MM", en la hora local del teléfono. */
-function startOf(day: Date, time: string) {
-  const [h, m] = time.split(':').map(Number);
+const pad = (n: number) => String(n).padStart(2, '0');
+const formatTime = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+/** Día elegido + hora elegida, en la hora local del teléfono. */
+function combine(day: Date, time: Date) {
   const d = new Date(day);
-  d.setHours(h, m, 0, 0);
+  d.setHours(time.getHours(), time.getMinutes(), 0, 0);
   return d.getTime();
+}
+
+/** Hoy a las `hours`: desde ahí abren los selectores de hora vacíos. */
+function todayAt(hours: number) {
+  const d = new Date();
+  d.setHours(hours, 0, 0, 0);
+  return d;
 }
 
 function inUruguay({ latitude, longitude }: LatLng) {
@@ -92,13 +90,15 @@ function PublishForm() {
   const writingDescription = useRef(false);
   // La hora se toma una vez al montar: llamar a Date.now() en cada render rompe la pureza del React Compiler.
   const [now] = useState(Date.now);
-  const [days] = useState(() => nextDays(14));
+  const [today] = useState(() => todayAt(0));
+  const [defaultStart] = useState(() => todayAt(21));
 
   const [name, setName] = useState('');
   const [kind, setKind] = useState<EventKind | null>(null);
-  const [dayIndex, setDayIndex] = useState<number | null>(null);
-  const [time, setTime] = useState<string | null>(null);
-  const [duration, setDuration] = useState(3);
+  const [day, setDay] = useState<Date | null>(null);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
+  const [noEndTime, setNoEndTime] = useState(false);
   const [placeName, setPlaceName] = useState('');
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
@@ -107,14 +107,21 @@ function PublishForm() {
   const [description, setDescription] = useState('');
   const [publishing, setPublishing] = useState(false);
 
-  // Hoy sólo se ofrecen los horarios que todavía no pasaron.
-  const availableTimes = dayIndex === null ? times : times.filter((t) => startOf(days[dayIndex], t) > now);
-  const startsAt = dayIndex !== null && time && availableTimes.includes(time) ? startOf(days[dayIndex], time) : null;
+  const startsAt = day && startTime ? combine(day, startTime) : null;
+  // El fin es el mismo día; si el evento pasa la medianoche se marca "Sin hora de fin".
+  const endsAt = day && endTime && !noEndTime ? combine(day, endTime) : null;
+  const startPassed = startsAt !== null && startsAt <= now;
+  const endBeforeStart = startsAt !== null && endsAt !== null && endsAt <= startsAt;
+  const whenError = startPassed
+    ? 'Ese horario ya pasó. Elegí uno más adelante.'
+    : endBeforeStart
+      ? 'La hora de fin tiene que ser después de la de inicio. Si termina pasada la medianoche, marcá "Sin hora de fin".'
+      : null;
   const outsideUruguay = coords !== null && !inUruguay(coords);
 
   const canContinue = [
     name.trim().length >= 3 && !!kind,
-    startsAt !== null,
+    startsAt !== null && (noEndTime || endsAt !== null) && !whenError,
     placeName.trim().length >= 2 && coords !== null && !outsideUruguay,
     true,
     true,
@@ -159,7 +166,7 @@ function PublishForm() {
   };
 
   const submit = async () => {
-    if (!kind || startsAt === null || !coords) return;
+    if (!kind || startsAt === null || (!noEndTime && endsAt === null) || !coords) return;
     setPublishing(true);
     try {
       const slug = await publish(
@@ -168,7 +175,8 @@ function PublishForm() {
           description,
           kind,
           startsAt,
-          endsAt: startsAt + duration * 60 * 60 * 1000,
+          endsAt: endsAt ?? undefined,
+          noEndTime,
           placeName,
           lat: coords.latitude,
           lon: coords.longitude,
@@ -257,44 +265,50 @@ function PublishForm() {
             <Text variant="overline" tone="secondary" style={styles.fieldLabel}>
               Día
             </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bleed} contentContainerStyle={styles.days}>
-              {days.map((d, i) => {
-                const selected = dayIndex === i;
-                return (
-                  <Pressable
-                    key={i}
-                    onPress={() => setDayIndex(i)}
-                    style={[styles.day, selected && styles.daySelected]}>
-                    <Text variant="caption" style={{ color: selected ? Colors.onAccent : Colors.textSecondary }}>
-                      {i === 0 ? 'Hoy' : dayNames[d.getDay()]}
-                    </Text>
-                    <Text variant="title" style={{ color: selected ? Colors.onAccent : Colors.text }}>
-                      {d.getDate()}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+            <DateTimeField
+              mode="date"
+              value={day}
+              onChange={setDay}
+              placeholder="Elegí el día"
+              format={formatDay}
+              initial={today}
+              minimumDate={today}
+              accessibilityLabel="Día del evento"
+            />
             <Text variant="overline" tone="secondary" style={styles.fieldLabel}>
               Hora de inicio
             </Text>
-            {availableTimes.length > 0 ? (
-              <View style={styles.wrap}>
-                {availableTimes.map((t) => (
-                  <Chip key={t} label={t} selected={time === t} onPress={() => setTime(t)} />
-                ))}
-              </View>
-            ) : (
-              <Text tone="secondary">Ya no quedan horarios para hoy. Elegí otro día.</Text>
-            )}
+            <DateTimeField
+              mode="time"
+              value={startTime}
+              onChange={setStartTime}
+              placeholder="Elegí la hora"
+              format={formatTime}
+              initial={defaultStart}
+              accessibilityLabel="Hora de inicio"
+            />
             <Text variant="overline" tone="secondary" style={styles.fieldLabel}>
-              Duración
+              Hora de fin
             </Text>
-            <View style={styles.wrap}>
-              {durations.map((h) => (
-                <Chip key={h} label={`${h} h`} selected={duration === h} onPress={() => setDuration(h)} />
-              ))}
+            {!noEndTime && (
+              <DateTimeField
+                mode="time"
+                value={endTime}
+                onChange={setEndTime}
+                placeholder="Elegí la hora"
+                format={formatTime}
+                initial={startTime ? new Date(startTime.getTime() + 3 * 60 * 60 * 1000) : today}
+                accessibilityLabel="Hora de fin"
+              />
+            )}
+            <View style={!noEndTime && { marginTop: Spacing.md }}>
+              <Checkbox label="Sin hora de fin" checked={noEndTime} onChange={setNoEndTime} />
             </View>
+            {whenError && (
+              <Text variant="caption" style={[styles.error, { marginTop: Spacing.md }]}>
+                {whenError}
+              </Text>
+            )}
           </>
         )}
 
@@ -407,7 +421,8 @@ function PublishForm() {
                   {name}
                 </Text>
                 <Text variant="label" tone="secondary">
-                  {dayIndex !== null && formatDay(days[dayIndex])} · {time} hs · {duration} h
+                  {day && formatDay(day)} · {startTime && formatTime(startTime)}
+                  {endTime && !noEndTime ? ` – ${formatTime(endTime)}` : ''} hs
                 </Text>
                 <Text variant="label" tone="secondary" numberOfLines={1}>
                   {placeName}
@@ -473,20 +488,6 @@ const styles = StyleSheet.create({
   },
   textarea: { minHeight: 110, paddingTop: Spacing.md, textAlignVertical: 'top', fontSize: 15 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  bleed: { marginHorizontal: -Spacing.lg },
-  days: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
-  day: {
-    width: 60,
-    height: 72,
-    borderRadius: Radius.lg,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-  },
-  daySelected: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   search: {
     flexDirection: 'row',
     alignItems: 'center',

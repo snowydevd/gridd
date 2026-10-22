@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
+import { NO_END_DURATION } from "./lib/validation";
 import { DAY, HOUR, expectCode, insertEvent, makeUser, setup, type T } from "./test.helpers";
 
 function validInput() {
@@ -58,6 +59,22 @@ describe("events.create", () => {
     await expectCode(as.mutation(api.events.create, { ...validInput(), lat: 10 }), "INVALID");
   });
 
+  test("sin hora de fin: guarda noEndTime y calcula endsAt", async () => {
+    const t = setup();
+    const { as } = await makeUser(t, "publisher");
+    const { endsAt: _, ...input } = validInput();
+    const { id } = await as.mutation(api.events.create, { ...input, noEndTime: true });
+    const event = await t.run((ctx) => ctx.db.get(id));
+    expect(event).toMatchObject({ noEndTime: true, endsAt: input.startsAt + NO_END_DURATION });
+  });
+
+  test("sin endsAt ni noEndTime → INVALID", async () => {
+    const t = setup();
+    const { as } = await makeUser(t, "publisher");
+    const { endsAt: _, ...input } = validInput();
+    await expectCode(as.mutation(api.events.create, input), "INVALID");
+  });
+
   test("imageId de un archivo inexistente → INVALID", async () => {
     const t = setup();
     const { as } = await makeUser(t, "publisher");
@@ -95,6 +112,26 @@ describe("events.update", () => {
     });
     await as.mutation(api.events.update, { id, title: "Seguimos acá" });
     expect((await t.run((ctx) => ctx.db.get(id)))?.title).toBe("Seguimos acá");
+  });
+
+  test("sin hora de fin: mover el inicio recalcula endsAt", async () => {
+    const t = setup();
+    const { as } = await makeUser(t, "publisher");
+    const { endsAt: _, ...input } = validInput();
+    const { id } = await as.mutation(api.events.create, { ...input, noEndTime: true });
+    const startsAt = input.startsAt + DAY;
+    await as.mutation(api.events.update, { id, startsAt });
+    expect((await t.run((ctx) => ctx.db.get(id)))?.endsAt).toBe(startsAt + NO_END_DURATION);
+  });
+
+  test("poner una hora de fin saca noEndTime", async () => {
+    const t = setup();
+    const { as } = await makeUser(t, "publisher");
+    const { endsAt: _, ...input } = validInput();
+    const { id } = await as.mutation(api.events.create, { ...input, noEndTime: true });
+    await as.mutation(api.events.update, { id, endsAt: input.startsAt + 2 * HOUR });
+    const event = await t.run((ctx) => ctx.db.get(id));
+    expect(event).toMatchObject({ noEndTime: false, endsAt: input.startsAt + 2 * HOUR });
   });
 
   test("mover la fecha al pasado → INVALID", async () => {
