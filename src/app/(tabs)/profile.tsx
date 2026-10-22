@@ -145,6 +145,11 @@ export default function ProfileScreen() {
           value={interests.length > 0 ? `${interests.length}` : undefined}
           onPress={() => router.push('/interests')}
         />
+        <Row 
+          icon='settings'
+          label='Cuenta'
+          onPress={() => router.push('/account-details')}
+        />
         <Row
           icon="pin"
           label="Ubicación"

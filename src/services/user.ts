@@ -96,3 +96,17 @@ export function useAvatarUpload() {
 
     return { pickAndUpload, removeAvatar, isUploading };
 }
+
+/**
+ * Elimina la cuenta en el backend y limpia la sesión guardada en el teléfono.
+ * Falla con CONFLICT si quedan eventos próximos publicados.
+ */
+export function useDeleteAccount() {
+    const deleteAccount = useMutation(api.users.deleteAccount)
+    const { signOut } = useAuthActions()
+    return async () => {
+        await deleteAccount()
+        // El backend ya borró la sesión: signOut sólo limpia el token local y puede fallar al avisarle al servidor.
+        await signOut().catch(() => {})
+    }
+}

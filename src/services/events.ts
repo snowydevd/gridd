@@ -72,6 +72,11 @@ export function usePublishEvent() {
 }
 
 /** Un evento por slug (`null` si no existe, `undefined` mientras carga). */
+/** Cancela un evento propio. El backend exige ser el organizador y que esté publicado. */
+export function useCancelEvent() {
+    return useMutation(api.events.cancel);
+}
+
 export function useEventBySlug(slug: string | undefined) {
     return useQuery(api.events.getBySlug, slug ? { slug } : "skip");
 }   
@@ -115,7 +120,7 @@ export type EventKind = EventView["kind"];
 
 /** Etiquetas en español de los `kind` del backend (convex/lib/validators.ts), en el orden de los chips. */
 export const KIND_LABELS: Record<EventKind, string> = {
-    junada: "Junada",
+    junada: "Encuentro",
     rodada: "Rodada",
     cars_and_coffee: "Cars & Coffee",
     expo: "Exposición",

@@ -30,7 +30,7 @@ export const ANGLES: Angle[] = [
     goal: "Que la gente entienda qué es Gridd y la descargue.",
     templates: ["headline", "carousel"],
     facts: [
-      "(app) En Gridd hay eventos de estas categorías: Junada, Rodada, Cars & Coffee, Exposición, Clásicos, JDM, Tuning, 4x4, Motos y Pista.",
+      "(app) En Gridd hay eventos de estas categorías: Encuentro, Rodada, Cars & Coffee, Exposición, Clásicos, JDM, Tuning, 4x4, Motos y Pista.",
       "(app) En Inicio se destaca el próximo evento y los de hoy llevan la etiqueta \"Hoy\".",
     ],
   },

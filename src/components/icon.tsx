@@ -39,6 +39,13 @@ const icons = {
   verified: { ios: 'checkmark.seal.fill', android: 'verified', web: 'verified' },
   edit: { ios: 'pencil', android: 'edit', web: 'edit' },
   flag: { ios: 'flag.checkered', android: 'sports_score', web: 'sports_score' },
+  document: { ios: 'doc.text', android: 'description', web: 'description' },
+  lock: { ios: 'lock', android: 'lock', web: 'lock' },
+  rules: { ios: 'checkmark.shield', android: 'verified_user', web: 'verified_user' },
+  help: { ios: 'questionmark.circle', android: 'help', web: 'help' },
+  external: { ios: 'arrow.up.right', android: 'open_in_new', web: 'open_in_new' },
+  trash: { ios: 'trash', android: 'delete', web: 'delete' },
+  settings: {ios: 'gearshape', android: 'settings', web: 'settings'}
 } satisfies Record<string, SymbolName>;
 
 export type IconName = keyof typeof icons;

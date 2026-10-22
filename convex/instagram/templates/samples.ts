@@ -6,7 +6,7 @@ export const SAMPLES = {
     template: "headline",
     data: {
       headline: "Todos los *car meets* de Uruguay en un solo lugar",
-      subline: "Junadas, rodadas, cars & coffee y más. Encontralos cerca tuyo.",
+      subline: "Encuentros, rodadas, cars & coffee y más. Encontralos cerca tuyo.",
     },
   },
   feature: {
@@ -24,7 +24,7 @@ export const SAMPLES = {
       cover: { title: "Cómo encontrar tu próximo *meet*", subtitle: "En tres pasos, desde el celu." },
       slides: [
         { title: "Descargá *Gridd*", body: "Entrá con tu cuenta y elegí qué tipo de meets te gustan." },
-        { title: "Mirá qué hay *cerca*", body: "Junadas, rodadas y exposiciones ordenadas por distancia y fecha." },
+        { title: "Mirá qué hay *cerca*", body: "Encuentros, rodadas y exposiciones ordenadas por distancia y fecha." },
         { title: "Avisá que *vas*", body: "Guardalo y caé con la nave lista." },
       ],
       cta: { title: "Nos vemos en la *próxima*", subtitle: "Bajate Gridd y no te pierdas ninguna." },

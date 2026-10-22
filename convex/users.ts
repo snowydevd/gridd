@@ -78,6 +78,107 @@ export const removeAvatar = mutation({
   },
 });
 
+/**
+ * Borra la cuenta y todo lo suyo, en una sola transacción. Si tiene eventos publicados que todavía
+ * no terminaron, no deja: los tiene que cancelar antes para no dejar plantada a la gente anotada.
+ */
+export const deleteAccount = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    const now = Date.now();
+
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_organizer", (q) => q.eq("organizerId", user._id))
+      .collect();
+    const upcoming = events.filter((e) => e.status === "published" && e.endsAt >= now).length;
+    if (upcoming > 0) {
+      fail(
+        "CONFLICT",
+        upcoming === 1
+          ? "Tenés un evento próximo publicado. Cancelalo antes de eliminar tu cuenta."
+          : `Tenés ${upcoming} eventos próximos publicados. Cancelalos antes de eliminar tu cuenta.`,
+      );
+    }
+
+    // Sus eventos (pasados, cancelados u ocultos), con la portada y lo que otros tenían en ellos.
+    for (const event of events) {
+      for (const table of ["attendances", "saves"] as const) {
+        const rows = await ctx.db
+          .query(table)
+          .withIndex("by_event_user", (q) => q.eq("eventId", event._id))
+          .collect();
+        for (const row of rows) await ctx.db.delete(row._id);
+      }
+      if (event.imageId) await ctx.storage.delete(event.imageId);
+      await ctx.db.delete(event._id);
+    }
+
+    // Sus anotaciones a eventos ajenos: el contador del evento baja.
+    const attendances = await ctx.db
+      .query("attendances")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    for (const attendance of attendances) {
+      const event = await ctx.db.get(attendance.eventId);
+      if (event) await ctx.db.patch(event._id, { attendeeCount: Math.max(0, event.attendeeCount - 1) });
+      await ctx.db.delete(attendance._id);
+    }
+
+    for (const table of ["saves", "cars", "publisherRequests"] as const) {
+      const rows = await ctx.db
+        .query(table)
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect();
+      for (const row of rows) await ctx.db.delete(row._id);
+    }
+
+    // Si era admin, las solicitudes que revisó quedan sin revisor.
+    const reviewed = await ctx.db
+      .query("publisherRequests")
+      .withIndex("by_reviewer", (q) => q.eq("reviewedBy", user._id))
+      .collect();
+    for (const request of reviewed) await ctx.db.patch(request._id, { reviewedBy: undefined });
+
+    // Login: cuentas con sus códigos y sesiones con sus tokens. Lo desloguea en todos lados y
+    // libera el email para registrarse de nuevo.
+    const accounts = await ctx.db
+      .query("authAccounts")
+      .withIndex("userIdAndProvider", (q) => q.eq("userId", user._id))
+      .collect();
+    for (const account of accounts) {
+      const codes = await ctx.db
+        .query("authVerificationCodes")
+        .withIndex("accountId", (q) => q.eq("accountId", account._id))
+        .collect();
+      for (const code of codes) await ctx.db.delete(code._id);
+      await ctx.db.delete(account._id);
+    }
+    const sessions = await ctx.db
+      .query("authSessions")
+      .withIndex("userId", (q) => q.eq("userId", user._id))
+      .collect();
+    for (const session of sessions) {
+      const tokens = await ctx.db
+        .query("authRefreshTokens")
+        .withIndex("sessionId", (q) => q.eq("sessionId", session._id))
+        .collect();
+      for (const token of tokens) await ctx.db.delete(token._id);
+      const verifiers = await ctx.db
+        .query("authVerifiers")
+        .withIndex("sessionId", (q) => q.eq("sessionId", session._id))
+        .collect();
+      for (const verifier of verifiers) await ctx.db.delete(verifier._id);
+      await ctx.db.delete(session._id);
+    }
+
+    if (user.avatarId) await ctx.storage.delete(user.avatarId);
+    await ctx.db.delete(user._id);
+    return null;
+  },
+});
+
 /** Bootstrap: `npx convex run users:setRole '{"email":"vos@mail.com","role":"admin"}'` */
 export const setRole = internalMutation({
   args: { email: v.string(), role },

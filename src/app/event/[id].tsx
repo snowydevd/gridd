@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Linking, Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { showDialog } from '@/components/dialog';
 import { formatKm } from '@/components/event-card';
 import { EventMap } from '@/components/event-map';
 import { Icon, type IconName } from '@/components/icon';
@@ -11,7 +12,8 @@ import { Text } from '@/components/text';
 import { Button, Fade, IconButton, Tag } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useAttendanceToggle } from '@/services/attendance';
-import { toCardEvent, useEventBySlug } from '@/services/events';
+import { carErrorMessage } from '@/services/cars';
+import { toCardEvent, useCancelEvent, useEventBySlug } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
 import { useSaveToggle } from '@/services/saved';
 import { useCurrentUser } from '@/services/user';
@@ -27,7 +29,9 @@ export default function EventDetailScreen() {
   const attendance = useAttendanceToggle(remote?._id);
   // La hora se toma una vez al montar: llamar a Date.now() en cada render rompe la pureza del React Compiler.
   const [now] = useState(Date.now);
-  const { isSignedIn } = useCurrentUser();
+  const { isSignedIn, user } = useCurrentUser();
+  const cancelEvent = useCancelEvent();
+  const [cancelling, setCancelling] = useState(false);
 
   if (remote === undefined && !event) {
     return (
@@ -47,6 +51,38 @@ export default function EventDetailScreen() {
   }
 
   const hours = event.endTime ? `${event.time} – ${event.endTime} hs` : `${event.time} hs`;
+
+  const isOrganizer = !!remote && !!user && remote.organizerId === user._id;
+  const isOpen = !!remote && remote.status === 'published' && remote.endsAt >= now;
+
+  const confirmCancel = () => {
+    if (!remote) return;
+    const going = remote.attendeeCount;
+    showDialog(
+      'Cancelar evento',
+      going > 0
+        ? `${going === 1 ? 'Hay 1 persona anotada' : `Hay ${going} personas anotadas`}. El evento va a figurar como cancelado y nadie más se va a poder anotar. No se puede deshacer.`
+        : 'El evento va a figurar como cancelado y nadie se va a poder anotar. No se puede deshacer.',
+      [
+        { text: 'Volver', style: 'cancel' },
+        {
+          text: 'Cancelar evento',
+          style: 'destructive',
+          onPress: async () => {
+            setCancelling(true);
+            try {
+              await cancelEvent({ id: remote._id });
+            } catch (error) {
+              if (__DEV__) console.log('[event] cancelar falló:', error);
+              showDialog('No pudimos cancelar el evento', carErrorMessage(error, 'Revisá tu conexión y probá de nuevo.'));
+            } finally {
+              setCancelling(false);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const openDirections = () => {
     // Con las coordenadas el destino es exacto; el nombre del lugar queda como etiqueta del pin en iOS.
@@ -148,7 +184,16 @@ export default function EventDetailScreen() {
         )}
         <Button label="Cómo llegar" icon="navigate" onPress={openDirections} style={{ flex: 1 }} />
         {/* El backend rechaza anotarse a un evento terminado o cancelado: ni se ofrece. */}
-        {remote && (remote.status !== 'published' || remote.endsAt < now) ? (
+        {isOrganizer && isOpen ? (
+          <Button
+            label="Cancelar evento"
+            icon="close"
+            variant="danger"
+            loading={cancelling}
+            onPress={confirmCancel}
+            style={{ flex: 1 }}
+          />
+        ) : remote && !isOpen ? (
           <Button
             label={remote.status === 'cancelled' ? 'Cancelado' : attendance.attending ? 'Fuiste' : 'Terminó'}
             disabled

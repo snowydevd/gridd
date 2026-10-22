@@ -65,13 +65,15 @@ Las funciones tiran `ConvexError` con `data = { code, message }`:
 
 | Módulo | Funciones |
 |---|---|
-| `users` | `me`, `updateProfile` |
+| `users` | `me`, `updateProfile`, `deleteAccount` |
 | `publisherRequests` | `submit`, `mine`, `listPending`*, `approve`*, `reject`* |
 | `events` | `listUpcoming`, `listInBounds`, `getBySlug`, `listMine`†, `create`†, `update`†, `cancel`†, `hide`*, `unhide`* |
 | `attendance` | `toggle`, `isAttending`, `myEvents` |
 | `files` | `generateUploadUrl`† |
 
 \* sólo admin · † publisher o admin
+
+`deleteAccount` borra en una transacción al usuario, su foto, autos, anotaciones (descontando el contador del evento), guardados, solicitudes, sus eventos pasados o cancelados con sus portadas, y sus cuentas y sesiones de Convex Auth. Si tiene eventos publicados que todavía no terminaron, falla con `CONFLICT`: hay que cancelarlos antes.
 
 Subir una imagen: `generateUploadUrl` → `POST` del archivo a esa URL → el `storageId` de la respuesta va como `imageId` en `create` o `update`.
 

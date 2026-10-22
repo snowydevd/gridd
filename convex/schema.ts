@@ -6,6 +6,8 @@ import { eventKind, eventStatus, igPostStatus, requestStatus, role } from "./lib
 
 export default defineSchema({
   ...authTables,
+  // Índice extra para borrar los verifiers de una sesión al eliminar la cuenta.
+  authVerifiers: authTables.authVerifiers.index("sessionId", ["sessionId"]),
 
   // Misma forma que authTables.users, más rol y updatedAt.
   users: defineTable({
@@ -46,7 +48,8 @@ export default defineSchema({
     reviewedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_reviewer", ["reviewedBy"]),
 
   events: defineTable({
     title: v.string(),
