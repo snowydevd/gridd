@@ -1,56 +1,96 @@
-# Welcome to your Expo app 👋
+# Gridd
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App para encontrar y organizar juntadas de autos en Uruguay: meets, rodadas, cars & coffee, exposiciones, JDM, clásicos y más. Muestra los eventos cercanos en un mapa, deja confirmar asistencia, guardar eventos, armar tu garage y, si sos organizador, publicar los tuyos.
 
-## Get started
+Hecha con [Expo](https://expo.dev) (React Native + Expo Router) y backend en [Convex](https://convex.dev), que vive en este mismo repo.
 
-1. Install dependencies
+## Stack
 
-   ```bash
-   npm install
-   ```
+- **App:** Expo SDK 57, React Native 0.86, Expo Router (rutas por archivo en `src/app/`), `react-native-maps`
+- **Backend:** Convex (base de datos, funciones, storage y crons), Convex Auth (contraseña, Google y Apple), Resend para los mails
+- **Instagram:** generación y publicación de posts con plantillas (Satori + resvg) y copys con Claude
+- **Tests:** Vitest + `convex-test`
+- **Paquetes:** [Bun](https://bun.sh) (`bun.lock`)
 
-2. Start the app
+## Empezar
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Requisitos: Bun, una cuenta de Convex y, para correr en el teléfono o el emulador, Android Studio o Xcode.
 
 ```bash
-npm run reset-project
+bun install
+cp .env.example .env.local
+bun run convex        # la primera vez crea el deployment de dev y completa CONVEX_* en .env.local
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+En otra terminal, con `bun run convex` corriendo:
 
-### Other setup steps
+```bash
+bun run android       # o: bun run ios
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+La app usa módulos nativos (mapas, `expo-dev-client`), así que **no corre en Expo Go**: hace falta un development build. `bun run android` / `ios` lo compila localmente; después alcanza con `bun start` para levantar el bundler.
 
-## Learn more
+Para tener eventos de ejemplo en el deployment de dev:
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+bun scripts/seed-events.ts          # carga eventos con fotos (no duplica)
+bun scripts/seed-events.ts --clear  # los borra
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Variables de entorno
 
-## Join the community
+En `.env.local` (ver `.env.example`):
 
-Join our community of developers creating universal apps.
+| Variable | Para qué |
+|---|---|
+| `CONVEX_DEPLOYMENT`, `EXPO_PUBLIC_CONVEX_URL`, `EXPO_PUBLIC_CONVEX_SITE_URL` | Conexión con Convex. Las genera `bun run convex` |
+| `GOOGLE_MAPS_ANDROID_API_KEY` | Maps SDK for Android. Se inyecta en `app.config.ts`; en iOS se usa Apple Maps |
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Las variables del backend (auth, Resend, Instagram) se cargan en Convex con `bunx convex env set`, no en `.env`. Están en [`convex/README.md`](convex/README.md).
+
+## Scripts
+
+| Comando | Qué hace |
+|---|---|
+| `bun start` | Bundler de Expo |
+| `bun run android` / `bun run ios` | Compila y abre el development build |
+| `bun run web` | Versión web |
+| `bun run convex` | `convex dev`: sincroniza funciones y genera tipos |
+| `bun run test` / `bun run test:watch` | Tests del backend |
+| `bun run typecheck` | TypeScript de la app y de `convex/` |
+| `bun run lint` | ESLint |
+
+## Estructura
+
+```
+src/
+  app/          pantallas (Expo Router): (tabs)/ inicio, mapa, guardados, perfil;
+                event/, events/, garage/, publish, login, email, interests
+  components/   UI compartida (mapa, tarjetas de evento, diálogos, texto)
+  services/     hooks que hablan con Convex (eventos, asistencia, autos, usuario…)
+  lib/          cliente de Convex, uploads, helpers
+  constants/    tema y estilo del mapa
+convex/         backend: schema, funciones, auth, crons e instagram/
+scripts/        seed de eventos y utilidades de las plantillas de Instagram
+docs/           specs, planes y devlog
+assets/         marca (assets/brand/), íconos y fotos de ejemplo
+```
+
+`android/` e `ios/` no se commitean: los genera Expo (Continuous Native Generation). La configuración nativa va en `app.json`, `app.config.ts` y config plugins.
+
+## Backend
+
+Todo lo de Convex (variables, login con Google/Apple, roles, API, errores y el flujo de posts de Instagram) está documentado en [`convex/README.md`](convex/README.md).
+
+## Builds (EAS)
+
+Los perfiles están en `eas.json`:
+
+```bash
+bunx eas-cli build --profile development   # dev client, distribución interna
+bunx eas-cli build --profile preview       # APK interno de Android
+bunx eas-cli build --profile production    # build de tienda (autoIncrement)
+bunx eas-cli submit --profile production   # sube a Google Play (track internal)
+```
+
+Las variables de entorno de los builds se cargan en EAS con `bunx eas-cli env:create`.
