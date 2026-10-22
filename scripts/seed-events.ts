@@ -30,7 +30,7 @@ type SeedEvent = {
   image: string;
 };
 
-// Los mismos eventos de src/data/events.ts, con los `kind` del backend.
+// Eventos de ejemplo, con los `kind` del backend.
 const EVENTS: SeedEvent[] = [
   {
     slug: "jdm-night-garage",
