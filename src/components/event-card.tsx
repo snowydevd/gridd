@@ -68,6 +68,56 @@ export function EventTile({ event, width = 240 }: { event: MeetEvent; width?: nu
   );
 }
 
+/**
+ * Two-column photo grid, the middle step between the featured hero and list rows.
+ * With an odd count the first tile spans the full width, so there is never a gap.
+ */
+export function EventGrid({ events }: { events: MeetEvent[] }) {
+  const wide = events.length % 2 === 1 ? events[0] : undefined;
+  const pairs: MeetEvent[][] = [];
+  for (let i = wide ? 1 : 0; i < events.length; i += 2) pairs.push(events.slice(i, i + 2));
+
+  return (
+    <View style={styles.grid}>
+      {wide && <GridTile event={wide} wide />}
+      {pairs.map((pair) => (
+        <View key={pair[0].id} style={styles.gridRow}>
+          {pair.map((e) => (
+            <GridTile key={e.id} event={e} />
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function GridTile({ event, wide }: { event: MeetEvent; wide?: boolean }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => openEvent(event.id)}
+      style={({ pressed }) => [styles.gridTile, pressed && styles.pressed]}>
+      <View>
+        <Image
+          source={event.image}
+          style={[styles.gridImage, { aspectRatio: wide ? 16 / 9 : 4 / 3 }]}
+          contentFit="cover"
+          transition={150}
+        />
+        <View style={styles.tileTag}>
+          <Tag label={event.day} tone={event.isToday ? 'accent' : 'default'} />
+        </View>
+      </View>
+      <Text variant="heading" numberOfLines={1} style={styles.gridTitle}>
+        {event.title}
+      </Text>
+      <Text variant="caption" tone="secondary" numberOfLines={1}>
+        {placeLine(event)}
+      </Text>
+    </Pressable>
+  );
+}
+
 export function openEvent(id: string) {
   router.push({ pathname: '/event/[id]', params: { id } });
 }
@@ -106,4 +156,13 @@ const styles = StyleSheet.create({
   },
   tileTag: { position: 'absolute', top: Spacing.md, left: Spacing.md },
   tileTitle: { marginTop: Spacing.md },
+  grid: { gap: Spacing.lg },
+  gridRow: { flexDirection: 'row', gap: Spacing.md },
+  gridTile: { flex: 1 },
+  gridImage: {
+    width: '100%',
+    borderRadius: Radius.xl,
+    backgroundColor: Colors.raised,
+  },
+  gridTitle: { marginTop: Spacing.sm },
 });

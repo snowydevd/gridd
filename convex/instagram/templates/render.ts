@@ -10,6 +10,8 @@ import jpeg from "jpeg-js";
 import satori from "satori";
 import { type TemplateInput, buildSlides, checkTemplateData } from "./index";
 import { CHIVO_700, CHIVO_800, HANKEN_400, HANKEN_500, HANKEN_700 } from "./fonts";
+import type { El } from "./h";
+import { STORY_HEIGHT, STORY_WIDTH, type StoryData, story } from "./story";
 import { C, F, HEIGHT, WIDTH } from "./theme";
 
 const JPEG_QUALITY = 90;
@@ -38,15 +40,22 @@ function setup() {
   return ready;
 }
 
+async function toJpeg(el: El, width: number, height: number): Promise<Uint8Array<ArrayBuffer>> {
+  const fonts = await setup();
+  const svg = await satori(el as unknown as Parameters<typeof satori>[0], { width, height, fonts });
+  const png = new Resvg(svg, { fitTo: { mode: "width", value: width }, background: C.bg }).render();
+  const encoded = jpeg.encode({ data: png.pixels, width: png.width, height: png.height }, JPEG_QUALITY);
+  return new Uint8Array(encoded.data);
+}
+
 /** Devuelve un JPEG 1080×1350 por slide. */
 export async function renderSlides(input: TemplateInput): Promise<Uint8Array<ArrayBuffer>[]> {
-  const fonts = await setup();
   const out: Uint8Array<ArrayBuffer>[] = [];
-  for (const el of buildSlides(checkTemplateData(input))) {
-    const svg = await satori(el as unknown as Parameters<typeof satori>[0], { width: WIDTH, height: HEIGHT, fonts });
-    const png = new Resvg(svg, { fitTo: { mode: "width", value: WIDTH }, background: C.bg }).render();
-    const encoded = jpeg.encode({ data: png.pixels, width: png.width, height: png.height }, JPEG_QUALITY);
-    out.push(new Uint8Array(encoded.data));
-  }
+  for (const el of buildSlides(checkTemplateData(input))) out.push(await toJpeg(el, WIDTH, HEIGHT));
   return out;
+}
+
+/** Historia de un evento: un JPEG 1080×1920. */
+export function renderStory(data: StoryData): Promise<Uint8Array<ArrayBuffer>> {
+  return toJpeg(story(data), STORY_WIDTH, STORY_HEIGHT);
 }

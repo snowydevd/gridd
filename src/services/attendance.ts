@@ -52,3 +52,17 @@ export function useMyUpcomingEvents() {
         isLoading: isSignedIn && events === undefined,
     };
 }
+
+export type Attendee = NonNullable<ReturnType<typeof useAttendees>["attendees"]>[number];
+
+/** Quiénes van a un evento (foto, nombre y auto). Sólo con sesión: a un invitado no se le muestra. */
+export function useAttendees(eventId: Id<"events"> | undefined) {
+    const { isSignedIn } = useCurrentUser();
+    const attendees = useQuery(api.attendance.list, eventId && isSignedIn ? { eventId } : "skip");
+    return { attendees, isLoading: isSignedIn && !!eventId && attendees === undefined };
+}
+
+/** "Subaru WRX STI 2008": el auto de un anotado en una línea. */
+export function attendeeCar(car: NonNullable<Attendee["car"]>) {
+    return [car.make, car.model, car.version, car.year].filter(Boolean).join(" ");
+}

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 
 import { useCurrentUser } from "@/services/user";
 
+import { KIND_LABELS } from "../../convex/lib/eventKinds";
 import { DAY, UY_BOUNDS } from "../../convex/lib/validation";
 
 const PAGE_SIZE = 5
@@ -73,7 +74,20 @@ export function usePublishEvent() {
     };
 }
 
-/** Un evento por slug (`null` si no existe, `undefined` mientras carga). */
+/**
+ * Edita un evento propio. `cover`: `undefined` deja la portada como está, `null` la quita y una URI
+ * local sube una nueva. El slug no cambia, así los links compartidos siguen andando.
+ */
+export function useUpdateEvent() {
+    const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+    const update = useMutation(api.events.update);
+
+    return async (id: EventView["_id"], event: NewEvent, cover?: string | null) => {
+        const imageId = cover ? await uploadImage(await generateUploadUrl(), cover, COVER_WIDTH) : undefined;
+        await update({ id, ...event, imageId, removeImage: cover === null ? true : undefined });
+    };
+}
+
 /** Eventos que organizó el usuario, del más nuevo al más viejo (vacío si no es publisher). */
 export function useMyEvents() {
     const { isPublisher } = useCurrentUser();
@@ -86,6 +100,7 @@ export function useCancelEvent() {
     return useMutation(api.events.cancel);
 }
 
+/** Un evento por slug (`null` si no existe, `undefined` mientras carga). */
 export function useEventBySlug(slug: string | undefined) {
     return useQuery(api.events.getBySlug, slug ? { slug } : "skip");
 }   
@@ -118,7 +133,8 @@ export type MeetEvent = {
     going: number;
     image: ImageSource;
     description: string;
-    organizer: { name: string; initials: string; verified?: boolean };
+    /** `id` y `image` faltan si el organizador borró su cuenta. */
+    organizer: { id?: string; name: string; initials: string; image?: ImageSource; verified?: boolean };
     /** Position on the stylized map, as 0–1 fractions of its width/height. */
     map: { x: number; y: number };
     /** Ubicación real, para el mapa nativo. */
@@ -129,20 +145,7 @@ export type MeetEvent = {
 export type EventView = FunctionReturnType<typeof api.events.listUpcoming>["page"][number];
 export type EventKind = EventView["kind"];
 
-/** Etiquetas en español de los `kind` del backend (convex/lib/validators.ts), en el orden de los chips. */
-export const KIND_LABELS: Record<EventKind, string> = {
-    junada: "Encuentro",
-    rodada: "Rodada",
-    cars_and_coffee: "Cars & Coffee",
-    expo: "Exposición",
-    clasicos: "Clásicos",
-    jdm: "JDM",
-    tuning: "Tuning",
-    "4x4": "4x4",
-    motos: "Motos",
-    pista: "Pista",
-    otro: "Otro",
-};
+export { KIND_LABELS };
 export const EVENT_KINDS = Object.keys(KIND_LABELS) as EventKind[];
 
 const DAY_SHORT = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -219,7 +222,12 @@ export function toCardEvent(event: EventView, userLocation?: LatLng | null, now 
         going: event.attendeeCount,
         image: event.imageUrl ? { uri: event.imageUrl } : DEFAULT_EVENT_IMAGE,
         description: event.description,
-        organizer: { name: organizerName, initials: initials(organizerName) },
+        organizer: {
+            id: event.organizer?._id,
+            name: organizerName,
+            initials: initials(organizerName),
+            image: event.organizer?.image ? { uri: event.organizer.image } : undefined,
+        },
         coords,
         map: {
             x: clamp01((event.lon - WEB_MAP.minLon) / (WEB_MAP.maxLon - WEB_MAP.minLon)),

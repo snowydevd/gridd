@@ -11,12 +11,10 @@ import { Text } from '@/components/text';
 import { Button, Card } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { carTitle, useMyCars } from '@/services/cars';
+import { REQUEST_STATUS_LABELS, usePublisherRequest } from '@/services/publisher-requests';
 import { useSavedEvents } from '@/services/saved';
 import { searchRadiusLabel, useSearchRadius } from '@/services/search-radius';
 import { useAvatarUpload, useCurrentUser, useInterests, useUserMeets } from '@/services/user';
-
-// TODO: todavía de prueba; "Encuentros" puede salir de attendance.myEvents y "Organizados" de events.listMine.
-
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -24,6 +22,7 @@ export default function ProfileScreen() {
   const { user, isLoading, isGuest, isPublisher, signOut } = useCurrentUser();
   const {attended, organized} = useUserMeets()
   const { events: savedEvents } = useSavedEvents();
+  const { status: requestStatus } = usePublisherRequest();
 
   const { cars } = useMyCars();
   const { interests } = useInterests();
@@ -145,6 +144,14 @@ export default function ProfileScreen() {
           value={interests.length > 0 ? `${interests.length}` : undefined}
           onPress={() => router.push('/interests')}
         />
+        {!isPublisher && (
+          <Row
+            icon="verified"
+            label="Quiero organizar encuentros"
+            value={requestStatus && requestStatus !== 'approved' ? REQUEST_STATUS_LABELS[requestStatus] : undefined}
+            onPress={() => router.push('/organizer-request')}
+          />
+        )}
         <Row 
           icon='settings'
           label='Cuenta'

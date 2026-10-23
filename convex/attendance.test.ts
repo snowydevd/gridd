@@ -95,3 +95,53 @@ describe("attendance.myEvents", () => {
     expect(mine.map((e) => e.title)).toEqual(["Antes", "Después"]);
   });
 });
+
+describe("attendance.list", () => {
+  test("devuelve foto, nombre y primer auto de cada anotado, sin email ni el organizador", async () => {
+    const t = setup();
+    const org = await makeUser(t, "publisher", "Org");
+    const ana = await makeUser(t, "user", "Ana");
+    const beto = await makeUser(t, "user", "Beto");
+    const eventId = await insertEvent(t, org.id);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("cars", { userId: ana.id, make: "Subaru", model: "WRX STI", year: 2008 });
+      await ctx.db.insert("cars", { userId: ana.id, make: "Toyota", model: "Corolla" });
+    });
+    for (const u of [ana, beto, org]) await u.as.mutation(api.attendance.toggle, { eventId });
+
+    const list = await beto.as.query(api.attendance.list, { eventId });
+    expect(list).toEqual([
+      { _id: ana.id, name: "Ana", image: null, car: { make: "Subaru", model: "WRX STI", version: null, year: 2008 } },
+      { _id: beto.id, name: "Beto", image: null, car: null },
+    ]);
+    expect(JSON.stringify(list)).not.toContain("@test.uy");
+  });
+
+  test("ordena por momento de anotación, no por id", async () => {
+    const t = setup();
+    const org = await makeUser(t, "publisher");
+    const users = [];
+    for (const name of ["A", "B", "C", "D", "E"]) users.push(await makeUser(t, "user", name));
+    const eventId = await insertEvent(t, org.id);
+    const order = [users[3], users[0], users[4], users[2], users[1]];
+    for (const u of order) await u.as.mutation(api.attendance.toggle, { eventId });
+
+    const list = await org.as.query(api.attendance.list, { eventId });
+    expect(list.map((p) => p._id)).toEqual(order.map((u) => u.id));
+  });
+
+  test("sin sesión → UNAUTHENTICATED", async () => {
+    const t = setup();
+    const org = await makeUser(t, "publisher");
+    const eventId = await insertEvent(t, org.id);
+    await expectCode(t.query(api.attendance.list, { eventId }), "UNAUTHENTICATED");
+  });
+
+  test("evento oculto → NOT_FOUND para quien no es admin ni organizador", async () => {
+    const t = setup();
+    const org = await makeUser(t, "publisher");
+    const fan = await makeUser(t, "user");
+    const eventId = await insertEvent(t, org.id, { status: "hidden" });
+    await expectCode(fan.as.query(api.attendance.list, { eventId }), "NOT_FOUND");
+  });
+});

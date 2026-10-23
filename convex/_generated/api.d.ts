@@ -14,6 +14,7 @@ import type * as cars from "../cars.js";
 import type * as crons from "../crons.js";
 import type * as events from "../events.js";
 import type * as files from "../files.js";
+import type * as follows from "../follows.js";
 import type * as http from "../http.js";
 import type * as instagram_client from "../instagram/client.js";
 import type * as instagram_content_angles from "../instagram/content/angles.js";
@@ -35,11 +36,13 @@ import type * as instagram_templates_index from "../instagram/templates/index.js
 import type * as instagram_templates_parts from "../instagram/templates/parts.js";
 import type * as instagram_templates_render from "../instagram/templates/render.js";
 import type * as instagram_templates_samples from "../instagram/templates/samples.js";
+import type * as instagram_templates_story from "../instagram/templates/story.js";
 import type * as instagram_templates_theme from "../instagram/templates/theme.js";
 import type * as instagram_templates_wordmark from "../instagram/templates/wordmark.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_avatar from "../lib/avatar.js";
 import type * as lib_errors from "../lib/errors.js";
+import type * as lib_eventKinds from "../lib/eventKinds.js";
 import type * as lib_eventView from "../lib/eventView.js";
 import type * as lib_newUser from "../lib/newUser.js";
 import type * as lib_passwordReset from "../lib/passwordReset.js";
@@ -49,9 +52,12 @@ import type * as lib_slug from "../lib/slug.js";
 import type * as lib_validation from "../lib/validation.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as lib_vehicleCatalog from "../lib/vehicleCatalog.js";
+import type * as organizers from "../organizers.js";
 import type * as publisherRequests from "../publisherRequests.js";
+import type * as reports from "../reports.js";
 import type * as saves from "../saves.js";
 import type * as seed from "../seed.js";
+import type * as stories from "../stories.js";
 import type * as users from "../users.js";
 
 import type {
@@ -67,6 +73,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   events: typeof events;
   files: typeof files;
+  follows: typeof follows;
   http: typeof http;
   "instagram/client": typeof instagram_client;
   "instagram/content/angles": typeof instagram_content_angles;
@@ -88,11 +95,13 @@ declare const fullApi: ApiFromModules<{
   "instagram/templates/parts": typeof instagram_templates_parts;
   "instagram/templates/render": typeof instagram_templates_render;
   "instagram/templates/samples": typeof instagram_templates_samples;
+  "instagram/templates/story": typeof instagram_templates_story;
   "instagram/templates/theme": typeof instagram_templates_theme;
   "instagram/templates/wordmark": typeof instagram_templates_wordmark;
   "lib/auth": typeof lib_auth;
   "lib/avatar": typeof lib_avatar;
   "lib/errors": typeof lib_errors;
+  "lib/eventKinds": typeof lib_eventKinds;
   "lib/eventView": typeof lib_eventView;
   "lib/newUser": typeof lib_newUser;
   "lib/passwordReset": typeof lib_passwordReset;
@@ -102,9 +111,12 @@ declare const fullApi: ApiFromModules<{
   "lib/validation": typeof lib_validation;
   "lib/validators": typeof lib_validators;
   "lib/vehicleCatalog": typeof lib_vehicleCatalog;
+  organizers: typeof organizers;
   publisherRequests: typeof publisherRequests;
+  reports: typeof reports;
   saves: typeof saves;
   seed: typeof seed;
+  stories: typeof stories;
   users: typeof users;
 }>;
 

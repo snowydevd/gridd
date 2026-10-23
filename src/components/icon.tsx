@@ -45,7 +45,9 @@ const icons = {
   help: { ios: 'questionmark.circle', android: 'help', web: 'help' },
   external: { ios: 'arrow.up.right', android: 'open_in_new', web: 'open_in_new' },
   trash: { ios: 'trash', android: 'delete', web: 'delete' },
-  settings: {ios: 'gearshape', android: 'settings', web: 'settings'}
+  settings: {ios: 'gearshape', android: 'settings', web: 'settings'},
+  more: { ios: 'ellipsis', android: 'more_horiz', web: 'more_horiz' },
+  report: { ios: 'exclamationmark.bubble', android: 'report', web: 'report' },
 } satisfies Record<string, SymbolName>;
 
 export type IconName = keyof typeof icons;

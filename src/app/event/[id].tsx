@@ -1,9 +1,10 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Linking, Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AttendeesPreview } from '@/components/attendees-preview';
 import { showDialog } from '@/components/dialog';
 import { formatKm } from '@/components/event-card';
 import { EventMap } from '@/components/event-map';
@@ -11,7 +12,10 @@ import { Icon, type IconName } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Button, Fade, IconButton, Tag } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { eventUrl } from '@/lib/links';
 import { useAttendanceToggle } from '@/services/attendance';
+import { addToCalendar } from '@/services/calendar';
+import { useShareStory } from '@/services/story';
 import { carErrorMessage } from '@/services/cars';
 import { toCardEvent, useCancelEvent, useEventBySlug } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
@@ -31,6 +35,7 @@ export default function EventDetailScreen() {
   const [now] = useState(Date.now);
   const { isSignedIn, user } = useCurrentUser();
   const cancelEvent = useCancelEvent();
+  const story = useShareStory();
   const [cancelling, setCancelling] = useState(false);
 
   if (remote === undefined && !event) {
@@ -84,6 +89,37 @@ export default function EventDetailScreen() {
     );
   };
 
+  const shareLink = () =>
+    Share.share({
+      message: `${event.title} · ${event.date} ${event.time} hs en ${event.place}\n${eventUrl(event.id)}`,
+    });
+
+  const openShare = () => {
+    // Sin evento de Convex (ejemplos) no hay imagen que generar: va directo el link.
+    if (!remote) return void shareLink();
+    showDialog('Compartir', undefined, [
+      { text: 'Compartir link', onPress: () => void shareLink() },
+      { text: 'Imagen para historia', onPress: () => void story.share(remote.slug) },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  };
+
+  const openMore = () => {
+    if (!remote) return;
+    showDialog(event.title, undefined, [
+      {
+        text: 'Reportar evento',
+        style: 'destructive',
+        // Un invitado primero tiene que iniciar sesión.
+        onPress: () =>
+          isSignedIn
+            ? router.push({ pathname: '/report', params: { eventId: remote._id, title: remote.title } })
+            : router.push('/login'),
+      },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  };
+
   const openDirections = () => {
     // Con las coordenadas el destino es exacto; el nombre del lugar queda como etiqueta del pin en iOS.
     const { latitude, longitude } = event.coords;
@@ -110,12 +146,7 @@ export default function EventDetailScreen() {
             <Tag label={event.category} />
           </View>
           <Text variant="display">{event.title}</Text>
-          <View style={styles.going}>
-            <Icon name="group" size={16} color={Colors.textSecondary} />
-            <Text variant="label" tone="secondary">
-              {event.going} van
-            </Text>
-          </View>
+          <AttendeesPreview eventId={remote?._id} going={event.going} />
 
           <View style={styles.facts}>
             <Fact icon="calendar" title={event.date} subtitle={hours} />
@@ -141,12 +172,21 @@ export default function EventDetailScreen() {
             {event.description}
           </Text>
 
-          <View style={styles.organizer}>
-            <View style={styles.orgBadge}>
-              <Text variant="overline" tone="accent">
-                {event.organizer.initials}
-              </Text>
-            </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Ver perfil de ${event.organizer.name}`}
+            disabled={!event.organizer.id}
+            onPress={() => router.push({ pathname: '/organizer/[id]', params: { id: event.organizer.id! } })}
+            style={({ pressed }) => [styles.organizer, pressed && { opacity: 0.7 }]}>
+            {event.organizer.image ? (
+              <Image source={event.organizer.image} style={styles.orgBadge} contentFit="cover" />
+            ) : (
+              <View style={styles.orgBadge}>
+                <Text variant="overline" tone="accent">
+                  {event.organizer.initials}
+                </Text>
+              </View>
+            )}
             <View style={{ flex: 1 }}>
               <Text variant="caption" tone="secondary">
                 Organiza
@@ -158,18 +198,41 @@ export default function EventDetailScreen() {
                 {event.organizer.verified && <Icon name="verified" size={16} color={Colors.success} />}
               </View>
             </View>
-          </View>
+            {event.organizer.id && <Icon name="chevron" size={18} color={Colors.textSecondary} />}
+          </Pressable>
         </View>
       </ScrollView>
 
       <View style={[styles.topBar, { top: insets.top + Spacing.sm }]}>
         <IconButton icon="back" label="Volver" overlay onPress={() => router.back()} />
-        <IconButton
-          icon="share"
-          label="Compartir"
-          overlay
-          onPress={() => Share.share({ message: `${event.title} · ${event.date} ${event.time} hs en ${event.place}` })}
-        />
+        <View style={styles.topActions}>
+          {isOrganizer && isOpen && (
+            <IconButton
+              icon="edit"
+              label="Editar evento"
+              overlay
+              onPress={() => router.push({ pathname: '/publish', params: { edit: remote.slug } })}
+            />
+          )}
+          {remote && isOpen && (
+            <IconButton
+              icon="calendar"
+              label="Agregar al calendario"
+              overlay
+              onPress={() =>
+                void addToCalendar({
+                  slug: remote.slug,
+                  title: remote.title,
+                  place: remote.placeName,
+                  startsAt: remote.startsAt,
+                  endsAt: remote.endsAt,
+                })
+              }
+            />
+          )}
+          <IconButton icon="share" label="Compartir" overlay onPress={openShare} />
+          {remote && !isOrganizer && <IconButton icon="more" label="Más opciones" overlay onPress={openMore} />}
+        </View>
       </View>
 
       <View style={[styles.actions, { paddingBottom: insets.bottom + Spacing.md }]}>
@@ -238,7 +301,6 @@ const styles = StyleSheet.create({
   hero: { height: 340, backgroundColor: Colors.surface },
   body: { paddingHorizontal: Spacing.lg, marginTop: -Spacing.xxl, gap: Spacing.md },
   tags: { flexDirection: 'row', gap: Spacing.sm },
-  going: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   facts: {
     marginTop: Spacing.md,
     backgroundColor: Colors.surface,
@@ -269,7 +331,7 @@ const styles = StyleSheet.create({
   orgBadge: {
     width: 44,
     height: 44,
-    borderRadius: Radius.md,
+    borderRadius: 22,
     backgroundColor: Colors.raised,
     alignItems: 'center',
     justifyContent: 'center',
@@ -282,6 +344,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  topActions: { flexDirection: 'row', gap: Spacing.sm },
   actions: {
     position: 'absolute',
     left: 0,

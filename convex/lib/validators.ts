@@ -33,6 +33,16 @@ export const requestStatus = v.union(
   v.literal("rejected"),
 );
 
+export const reportReason = v.union(
+  v.literal("spam"),
+  v.literal("fake"),
+  v.literal("offensive"),
+  v.literal("other"),
+);
+export type ReportReason = typeof reportReason.type;
+
+export const reportStatus = v.union(v.literal("pending"), v.literal("resolved"));
+
 export const igPostStatus = v.union(
   v.literal("draft"),
   v.literal("approved"),

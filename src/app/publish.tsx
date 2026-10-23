@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import { Redirect, router } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -23,7 +23,15 @@ import { Text } from '@/components/text';
 import { Button, Checkbox, Chip, Fade, IconButton, Tag } from '@/components/ui';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import { carErrorMessage } from '@/services/cars';
-import { EVENT_KINDS, KIND_LABELS, usePublishEvent, type EventKind } from '@/services/events';
+import {
+  EVENT_KINDS,
+  KIND_LABELS,
+  useEventBySlug,
+  usePublishEvent,
+  useUpdateEvent,
+  type EventKind,
+  type EventView,
+} from '@/services/events';
 import { useLastKnownLocation, type LatLng } from '@/services/location';
 import { useCurrentUser } from '@/services/user';
 import { UY_BOUNDS } from '../../convex/lib/validation';
@@ -71,20 +79,32 @@ function inUruguay({ latitude, longitude }: LatLng) {
 }
 
 // Sólo admins y publishers pueden publicar (el backend lo exige en events.create);
-// esto cubre a quien llegue por deep link.
+// esto cubre a quien llegue por deep link. Con `?edit=<slug>` edita un evento propio.
 export default function PublishScreen() {
-  const { isLoading, isPublisher } = useCurrentUser();
-  if (isLoading) return null;
+  const { edit } = useLocalSearchParams<{ edit?: string }>();
+  const { isLoading, isPublisher, user } = useCurrentUser();
+  const editing = useEventBySlug(edit);
+  if (isLoading || (edit && editing === undefined)) return null;
   if (!isPublisher) return <Redirect href="/" />;
+  if (edit) {
+    // El backend sólo deja editar eventos propios y publicados.
+    if (!editing || editing.organizerId !== user?._id || editing.status !== 'published') {
+      return <Redirect href="/" />;
+    }
+    return <PublishForm initial={editing} />;
+  }
   return <PublishForm />;
 }
 
-function PublishForm() {
+function PublishForm({ initial }: { initial?: EventView }) {
   const insets = useSafeAreaInsets();
-  const [step, setStep] = useState(0);
+  // Al editar se arranca en la revisión: desde ahí se toca la sección a cambiar.
+  const [step, setStep] = useState(initial ? REVIEW : 0);
+  const isFirst = step === 0 || (!!initial && step === REVIEW);
 
   const location = useLastKnownLocation();
   const publish = usePublishEvent();
+  const updateEvent = useUpdateEvent();
   const map = useRef<EventMapHandle>(null);
   const scroll = useRef<ScrollView>(null);
   const writingDescription = useRef(false);
@@ -93,24 +113,31 @@ function PublishForm() {
   const [today] = useState(() => todayAt(0));
   const [defaultStart] = useState(() => todayAt(21));
 
-  const [name, setName] = useState('');
-  const [kind, setKind] = useState<EventKind | null>(null);
-  const [day, setDay] = useState<Date | null>(null);
-  const [startTime, setStartTime] = useState<Date | null>(null);
-  const [endTime, setEndTime] = useState<Date | null>(null);
-  const [noEndTime, setNoEndTime] = useState(false);
-  const [placeName, setPlaceName] = useState('');
+  // Al editar, el formulario arranca con lo que ya tiene el evento.
+  const [name, setName] = useState(initial?.title ?? '');
+  const [kind, setKind] = useState<EventKind | null>(initial?.kind ?? null);
+  const [day, setDay] = useState<Date | null>(() => (initial ? new Date(initial.startsAt) : null));
+  const [startTime, setStartTime] = useState<Date | null>(() => (initial ? new Date(initial.startsAt) : null));
+  const [endTime, setEndTime] = useState<Date | null>(() =>
+    initial && !initial.noEndTime ? new Date(initial.endsAt) : null,
+  );
+  const [noEndTime, setNoEndTime] = useState(initial?.noEndTime ?? false);
+  const [placeName, setPlaceName] = useState(initial?.placeName ?? '');
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
-  const [coords, setCoords] = useState<LatLng | null>(null);
-  const [coverUri, setCoverUri] = useState<string | null>(null);
-  const [description, setDescription] = useState('');
+  const [coords, setCoords] = useState<LatLng | null>(
+    initial ? { latitude: initial.lat, longitude: initial.lon } : null,
+  );
+  // Al editar puede ser la URL remota de la portada actual.
+  const [coverUri, setCoverUri] = useState<string | null>(initial?.imageUrl ?? null);
+  const [description, setDescription] = useState(initial?.description ?? '');
   const [publishing, setPublishing] = useState(false);
 
   const startsAt = day && startTime ? combine(day, startTime) : null;
   // El fin es el mismo día; si el evento pasa la medianoche se marca "Sin hora de fin".
   const endsAt = day && endTime && !noEndTime ? combine(day, endTime) : null;
-  const startPassed = startsAt !== null && startsAt <= now;
+  // Al editar sólo se exige fecha futura si se cambió (igual que en events.update).
+  const startPassed = startsAt !== null && startsAt <= now && startsAt !== initial?.startsAt;
   const endBeforeStart = startsAt !== null && endsAt !== null && endsAt <= startsAt;
   const whenError = startPassed
     ? 'Ese horario ya pasó. Elegí uno más adelante.'
@@ -168,26 +195,34 @@ function PublishForm() {
   const submit = async () => {
     if (!kind || startsAt === null || (!noEndTime && endsAt === null) || !coords) return;
     setPublishing(true);
+    const fields = {
+      title: name,
+      description,
+      kind,
+      startsAt,
+      endsAt: endsAt ?? undefined,
+      noEndTime,
+      placeName,
+      lat: coords.latitude,
+      lon: coords.longitude,
+    };
     try {
-      const slug = await publish(
-        {
-          title: name,
-          description,
-          kind,
-          startsAt,
-          endsAt: endsAt ?? undefined,
-          noEndTime,
-          placeName,
-          lat: coords.latitude,
-          lon: coords.longitude,
-        },
-        coverUri ?? undefined,
-      );
+      if (initial) {
+        // Si la portada sigue siendo la misma URL, no se toca.
+        await updateEvent(initial._id, fields, coverUri === initial.imageUrl ? undefined : coverUri);
+        router.back();
+        showDialog('Cambios guardados', 'Tu evento ya se ve actualizado.');
+        return;
+      }
+      const slug = await publish(fields, coverUri ?? undefined);
       router.replace({ pathname: '/event/[id]', params: { id: slug } });
       showDialog('¡Publicado!', 'Tu evento ya aparece en Inicio y en el mapa.');
     } catch (error) {
       if (__DEV__) console.log('[publish] falló:', error);
-      showDialog('No pudimos publicar', carErrorMessage(error, 'Revisá tu conexión y probá de nuevo.'));
+      showDialog(
+        initial ? 'No pudimos guardar los cambios' : 'No pudimos publicar',
+        carErrorMessage(error, 'Revisá tu conexión y probá de nuevo.'),
+      );
       setPublishing(false);
     }
   };
@@ -206,7 +241,7 @@ function PublishForm() {
 
   const back = () => {
     if (publishing) return;
-    if (step === 0) router.back();
+    if (isFirst) router.back();
     else setStep(step - 1);
   };
 
@@ -218,7 +253,7 @@ function PublishForm() {
       behavior="padding">
       <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={styles.headerRow}>
-          <IconButton icon={step === 0 ? 'close' : 'back'} label={step === 0 ? 'Cerrar' : 'Atrás'} onPress={back} />
+          <IconButton icon={isFirst ? 'close' : 'back'} label={isFirst ? 'Cerrar' : 'Atrás'} onPress={back} />
           <Text variant="overline" tone="secondary">
             {step < REVIEW ? `Paso ${step + 1} de ${STEPS.length}` : 'Revisión'}
           </Text>
@@ -246,7 +281,7 @@ function PublishForm() {
               placeholderTextColor={Colors.textDisabled}
               style={styles.input}
               maxLength={60}
-              autoFocus
+              autoFocus={!initial}
             />
             <Text variant="overline" tone="secondary" style={styles.fieldLabel}>
               Tipo
@@ -340,7 +375,11 @@ function PublishForm() {
               ref={map}
               style={styles.map}
               initialRegion={
-                location ? { ...location, latitudeDelta: 0.05, longitudeDelta: 0.05 } : INITIAL_REGION
+                initial
+                  ? { latitude: initial.lat, longitude: initial.lon, latitudeDelta: PLACE_DELTA, longitudeDelta: PLACE_DELTA }
+                  : location
+                    ? { ...location, latitudeDelta: 0.05, longitudeDelta: 0.05 }
+                    : INITIAL_REGION
               }
               showsUserLocation={!!location}
               pins={
@@ -411,10 +450,10 @@ function PublishForm() {
 
         {step === REVIEW && (
           <>
-            <StepTitle title="Revisá tu evento" />
+            <StepTitle title={initial ? 'Revisá los cambios' : 'Revisá tu evento'} />
             <View style={styles.preview}>
               <Image source={coverUri ? { uri: coverUri } : DEFAULT_COVER} style={StyleSheet.absoluteFill} contentFit="cover" />
-              <Fade style={{ top: '30%' }} to="rgba(11,11,12,0.95)" />
+              <Fade style={{ top: '30%' }} opacity={0.95} />
               <View style={styles.previewBody}>
                 {kind && <Tag label={KIND_LABELS[kind]} />}
                 <Text variant="title" numberOfLines={2}>
@@ -445,7 +484,7 @@ function PublishForm() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
         <Button
-          label={step === REVIEW ? 'Publicar evento' : 'Siguiente'}
+          label={step === REVIEW ? (initial ? 'Guardar cambios' : 'Publicar evento') : 'Siguiente'}
           icon={step === REVIEW ? 'check' : 'arrow'}
           iconPosition={step === REVIEW ? 'start' : 'end'}
           disabled={!canContinue}

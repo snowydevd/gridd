@@ -2,7 +2,15 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { searchRadius } from "./lib/searchRadius";
-import { eventKind, eventStatus, igPostStatus, requestStatus, role } from "./lib/validators";
+import {
+  eventKind,
+  eventStatus,
+  igPostStatus,
+  reportReason,
+  reportStatus,
+  requestStatus,
+  role,
+} from "./lib/validators";
 
 export default defineSchema({
   ...authTables,
@@ -87,6 +95,32 @@ export default defineSchema({
   })
     .index("by_event_user", ["eventId", "userId"])
     .index("by_user", ["userId"]),
+
+  // A qué organizadores sigue cada usuario.
+  follows: defineTable({
+    followerId: v.id("users"),
+    organizerId: v.id("users"),
+  })
+    .index("by_follower_organizer", ["followerId", "organizerId"])
+    .index("by_organizer", ["organizerId"]),
+
+  // Reportes de un evento o de un usuario (uno de los dos). Un admin los resuelve desde el dashboard.
+  reports: defineTable({
+    reporterId: v.id("users"),
+    eventId: v.optional(v.id("events")),
+    reportedUserId: v.optional(v.id("users")),
+    reason: reportReason,
+    note: v.optional(v.string()),
+    status: reportStatus,
+    resolvedBy: v.optional(v.id("users")),
+    resolvedAt: v.optional(v.number()),
+  })
+    .index("by_status", ["status"])
+    .index("by_event_status", ["eventId", "status"])
+    .index("by_user_status", ["reportedUserId", "status"])
+    .index("by_reporter", ["reporterId", "eventId", "status"])
+    .index("by_reporter_user", ["reporterId", "reportedUserId", "status"])
+    .index("by_resolver", ["resolvedBy"]),
 
   // Posts para la cuenta de Instagram de Gridd. Nunca pasan de draft a approved sin un admin.
   igPosts: defineTable({

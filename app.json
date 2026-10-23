@@ -8,7 +8,13 @@
     "scheme": "gridd",
     "userInterfaceStyle": "dark",
     "ios": {
-      "bundleIdentifier": "com.gridd.app"
+      "bundleIdentifier": "com.gridd.app",
+      "associatedDomains": [
+        "applinks:gridd.app"
+      ],
+      "infoPlist": {
+        "NSCalendarsUsageDescription": "Gridd agrega a tu calendario los encuentros que elijas."
+      }
     },
     "android": {
       "package": "com.gridd.app",
@@ -18,7 +24,24 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "gridd.app",
+              "pathPrefix": "/e/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "output": "static",

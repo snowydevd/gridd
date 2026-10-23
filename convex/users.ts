@@ -111,6 +111,11 @@ export const deleteAccount = mutation({
           .collect();
         for (const row of rows) await ctx.db.delete(row._id);
       }
+      const reports = await ctx.db
+        .query("reports")
+        .withIndex("by_event_status", (q) => q.eq("eventId", event._id))
+        .collect();
+      for (const report of reports) await ctx.db.delete(report._id);
       if (event.imageId) await ctx.storage.delete(event.imageId);
       await ctx.db.delete(event._id);
     }
@@ -133,6 +138,35 @@ export const deleteAccount = mutation({
         .collect();
       for (const row of rows) await ctx.db.delete(row._id);
     }
+
+    const following = await ctx.db
+      .query("follows")
+      .withIndex("by_follower_organizer", (q) => q.eq("followerId", user._id))
+      .collect();
+    const followers = await ctx.db
+      .query("follows")
+      .withIndex("by_organizer", (q) => q.eq("organizerId", user._id))
+      .collect();
+    for (const follow of [...following, ...followers]) await ctx.db.delete(follow._id);
+
+    const reports = await ctx.db
+      .query("reports")
+      .withIndex("by_reporter", (q) => q.eq("reporterId", user._id))
+      .collect();
+    for (const report of reports) await ctx.db.delete(report._id);
+
+    const aboutUser = await ctx.db
+      .query("reports")
+      .withIndex("by_user_status", (q) => q.eq("reportedUserId", user._id))
+      .collect();
+    for (const report of aboutUser) await ctx.db.delete(report._id);
+
+    // Si era admin, los reportes que resolvió quedan sin resolvedor.
+    const resolved = await ctx.db
+      .query("reports")
+      .withIndex("by_resolver", (q) => q.eq("resolvedBy", user._id))
+      .collect();
+    for (const report of resolved) await ctx.db.patch(report._id, { resolvedBy: undefined });
 
     // Si era admin, las solicitudes que revisó quedan sin revisor.
     const reviewed = await ctx.db
