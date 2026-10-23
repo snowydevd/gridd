@@ -20,7 +20,10 @@ export default function SavedScreen() {
   const saved = useSavedEvents();
   const mine = useMyEvents();
   const location = useLastKnownLocation();
-  const [segment, setSegment] = useState<Segment>('saved');
+  const { isPublisher } = useCurrentUser();
+  const [picked, setSegment] = useState<Segment>('saved');
+  // "Mis eventos" es sólo para quien puede publicar: un usuario común ve siempre sus guardados.
+  const segment = isPublisher ? picked : 'saved';
 
   const { events, isLoading } = segment === 'saved' ? saved : mine;
   const sections: Section[] =
@@ -45,10 +48,12 @@ export default function SavedScreen() {
         Guardados
       </Text>
 
-      <View style={styles.segmented}>
-        <SegmentButton label="Guardados" active={segment === 'saved'} onPress={() => setSegment('saved')} />
-        <SegmentButton label="Mis eventos" active={segment === 'mine'} onPress={() => setSegment('mine')} />
-      </View>
+      {isPublisher && (
+        <View style={styles.segmented}>
+          <SegmentButton label="Guardados" active={segment === 'saved'} onPress={() => setSegment('saved')} />
+          <SegmentButton label="Mis eventos" active={segment === 'mine'} onPress={() => setSegment('mine')} />
+        </View>
+      )}
 
       {isLoading ? (
         <ActivityIndicator color={Colors.accent} style={styles.loading} />
