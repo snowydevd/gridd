@@ -142,4 +142,58 @@ describe("users.deleteAccount", () => {
     expect(request).toMatchObject({ status: "approved" });
     expect(request?.reviewedBy).toBeUndefined();
   });
+
+  test("borra a quién seguía y quiénes lo seguían", async () => {
+    const t = setup();
+    const { id: userId, as } = await makeUser(t, "publisher");
+    const { id: otherId } = await makeUser(t, "publisher", "Beto");
+    const ids = await t.run(async (ctx) => ({
+      following: await ctx.db.insert("follows", { followerId: userId, organizerId: otherId }),
+      follower: await ctx.db.insert("follows", { followerId: otherId, organizerId: userId }),
+    }));
+
+    await as.mutation(api.users.deleteAccount, {});
+
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get(ids.following)).toBeNull();
+      expect(await ctx.db.get(ids.follower)).toBeNull();
+    });
+  });
+
+  test("borra sus reportes y los que recibieron sus eventos; los que resolvió quedan sin resolvedor", async () => {
+    const t = setup();
+    const { id: userId, as } = await makeUser(t, "admin");
+    const { id: otherId } = await makeUser(t, "publisher", "Beto");
+    const own = await insertEvent(t, userId, { status: "cancelled" });
+    const others = await insertEvent(t, otherId);
+    const ids = await t.run(async (ctx) => ({
+      byUser: await ctx.db.insert("reports", { reporterId: userId, eventId: others, reason: "spam", status: "pending" }),
+      aboutUser: await ctx.db.insert("reports", {
+        reporterId: otherId,
+        reportedUserId: userId,
+        reason: "spam",
+        status: "pending",
+      }),
+      onOwn: await ctx.db.insert("reports", { reporterId: otherId, eventId: own, reason: "fake", status: "pending" }),
+      resolved: await ctx.db.insert("reports", {
+        reporterId: otherId,
+        eventId: others,
+        reason: "other",
+        status: "resolved",
+        resolvedBy: userId,
+        resolvedAt: Date.now(),
+      }),
+    }));
+
+    await as.mutation(api.users.deleteAccount, {});
+
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get(ids.byUser)).toBeNull();
+      expect(await ctx.db.get(ids.onOwn)).toBeNull();
+      expect(await ctx.db.get(ids.aboutUser)).toBeNull();
+      const resolved = await ctx.db.get(ids.resolved);
+      expect(resolved).toMatchObject({ status: "resolved" });
+      expect(resolved?.resolvedBy).toBeUndefined();
+    });
+  });
 });
