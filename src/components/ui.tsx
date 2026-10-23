@@ -169,9 +169,19 @@ export function Card({ children, style }: { children: ReactNode; style?: StylePr
   return <View style={[styles.card, style]}>{children}</View>;
 }
 
-/** Vertical fade from transparent to the canvas color — used over photos. */
-export function Fade({ style, from = 'rgba(11,11,12,0)', to = Colors.canvas }: { style?: StyleProp<ViewStyle>; from?: string; to?: string }) {
-  const gradient = `linear-gradient(180deg, ${from} 0%, ${to} 100%)`;
+// [position %, alpha] of an ease-in-out curve. A plain two-stop gradient ends with a sudden change of
+// slope that the eye reads as a hard line where the photo stops; easing both ends hides it.
+const FADE_CURVE = [
+  [0, 0], [8.1, 0.013], [15.5, 0.049], [22.5, 0.104], [29, 0.175], [35.2, 0.259], [41.1, 0.352],
+  [47.1, 0.45], [52.9, 0.55], [58.8, 0.648], [64.8, 0.741], [71, 0.825], [77.5, 0.896], [84.5, 0.951],
+  [91.9, 0.987], [100, 1],
+];
+const CANVAS_RGB = [1, 3, 5].map((i) => parseInt(Colors.canvas.slice(i, i + 2), 16)).join(',');
+
+/** Vertical fade from transparent to the canvas color — used over photos. `opacity` caps the bottom. */
+export function Fade({ style, opacity = 1 }: { style?: StyleProp<ViewStyle>; opacity?: number }) {
+  const stops = FADE_CURVE.map(([at, alpha]) => `rgba(${CANVAS_RGB},${(alpha * opacity).toFixed(3)}) ${at}%`);
+  const gradient = `linear-gradient(180deg, ${stops.join(', ')})`;
   const fill = Platform.OS === 'web'
     ? ({ backgroundImage: gradient } as ViewStyle)
     : { experimental_backgroundImage: gradient };

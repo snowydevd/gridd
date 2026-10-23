@@ -414,7 +414,7 @@ function PublishForm() {
             <StepTitle title="Revisá tu evento" />
             <View style={styles.preview}>
               <Image source={coverUri ? { uri: coverUri } : DEFAULT_COVER} style={StyleSheet.absoluteFill} contentFit="cover" />
-              <Fade style={{ top: '30%' }} to="rgba(11,11,12,0.95)" />
+              <Fade style={{ top: '30%' }} opacity={0.95} />
               <View style={styles.previewBody}>
                 {kind && <Tag label={KIND_LABELS[kind]} />}
                 <Text variant="title" numberOfLines={2}>

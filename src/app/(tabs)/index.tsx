@@ -5,7 +5,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AccountCards } from '@/components/account-cards';
-import { EventRow, formatKm, openEvent, WhenLine } from '@/components/event-card';
+import { EventGrid, EventRow, formatKm, openEvent, WhenLine } from '@/components/event-card';
 import { Icon } from '@/components/icon';
 import { RadiusOptions } from '@/components/radius-options';
 import { Text } from '@/components/text';
@@ -77,7 +77,7 @@ export default function HomeScreen() {
           onPress={() => openEvent(featured.card.id)}
           style={({ pressed }) => [styles.hero, pressed && { opacity: 0.85 }]}>
           <Image source={featured.card.image} style={StyleSheet.absoluteFill} contentFit="cover" />
-          <Fade style={{ top: '35%' }} to="rgba(11,11,12,0.95)" />
+          <Fade style={{ top: '35%' }} opacity={0.95} />
           <View style={styles.heroTop}>
             <Tag label={featured.card.isToday ? 'Hoy' : 'Próximo'} tone="accent" />
           </View>
@@ -95,21 +95,20 @@ export default function HomeScreen() {
         </Pressable>
       )}
 
+      {/* Escalón intermedio entre el destacado y las filas: la grilla le da foto a "Para vos". */}
+      {forYou.length > 0 && (
+        <View style={styles.section}>
+          <SectionHeader title="Para vos" action="Ver todo" onAction={() => router.push('/events')} />
+          <EventGrid events={forYou.map((c) => c.card)} />
+        </View>
+      )}
+
       {going.length > 0 && (
         <View style={styles.section}>
           <SectionHeader title="Vas a ir" />
           {going.map((e) => (
             // Un cancelado queda atenuado: sigue en la lista para que el usuario se entere.
             <EventRow key={e._id} event={toCardEvent(e, location)} dimmed={e.status === 'cancelled'} />
-          ))}
-        </View>
-      )}
-
-      {forYou.length > 0 && (
-        <View style={styles.section}>
-          <SectionHeader title="Para vos" action="Ver todo" onAction={() => router.push('/events')} />
-          {forYou.map((c) => (
-            <EventRow key={c.card.id} event={c.card} />
           ))}
         </View>
       )}
