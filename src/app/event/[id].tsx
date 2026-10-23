@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AttendeesPreview } from '@/components/attendees-preview';
 import { showDialog } from '@/components/dialog';
 import { formatKm } from '@/components/event-card';
 import { EventMap } from '@/components/event-map';
@@ -13,6 +14,8 @@ import { Button, Fade, IconButton, Tag } from '@/components/ui';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { eventUrl } from '@/lib/links';
 import { useAttendanceToggle } from '@/services/attendance';
+import { addToCalendar } from '@/services/calendar';
+import { useShareStory } from '@/services/story';
 import { carErrorMessage } from '@/services/cars';
 import { toCardEvent, useCancelEvent, useEventBySlug } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
@@ -32,6 +35,7 @@ export default function EventDetailScreen() {
   const [now] = useState(Date.now);
   const { isSignedIn, user } = useCurrentUser();
   const cancelEvent = useCancelEvent();
+  const story = useShareStory();
   const [cancelling, setCancelling] = useState(false);
 
   if (remote === undefined && !event) {
@@ -85,6 +89,21 @@ export default function EventDetailScreen() {
     );
   };
 
+  const shareLink = () =>
+    Share.share({
+      message: `${event.title} · ${event.date} ${event.time} hs en ${event.place}\n${eventUrl(event.id)}`,
+    });
+
+  const openShare = () => {
+    // Sin evento de Convex (ejemplos) no hay imagen que generar: va directo el link.
+    if (!remote) return void shareLink();
+    showDialog('Compartir', undefined, [
+      { text: 'Compartir link', onPress: () => void shareLink() },
+      { text: 'Imagen para historia', onPress: () => void story.share(remote.slug) },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  };
+
   const openMore = () => {
     if (!remote) return;
     showDialog(event.title, undefined, [
@@ -127,12 +146,7 @@ export default function EventDetailScreen() {
             <Tag label={event.category} />
           </View>
           <Text variant="display">{event.title}</Text>
-          <View style={styles.going}>
-            <Icon name="group" size={16} color={Colors.textSecondary} />
-            <Text variant="label" tone="secondary">
-              {event.going} van
-            </Text>
-          </View>
+          <AttendeesPreview eventId={remote?._id} going={event.going} />
 
           <View style={styles.facts}>
             <Fact icon="calendar" title={event.date} subtitle={hours} />
@@ -200,16 +214,23 @@ export default function EventDetailScreen() {
               onPress={() => router.push({ pathname: '/publish', params: { edit: remote.slug } })}
             />
           )}
-          <IconButton
-            icon="share"
-            label="Compartir"
-            overlay
-            onPress={() =>
-              Share.share({
-                message: `${event.title} · ${event.date} ${event.time} hs en ${event.place}\n${eventUrl(event.id)}`,
-              })
-            }
-          />
+          {remote && isOpen && (
+            <IconButton
+              icon="calendar"
+              label="Agregar al calendario"
+              overlay
+              onPress={() =>
+                void addToCalendar({
+                  slug: remote.slug,
+                  title: remote.title,
+                  place: remote.placeName,
+                  startsAt: remote.startsAt,
+                  endsAt: remote.endsAt,
+                })
+              }
+            />
+          )}
+          <IconButton icon="share" label="Compartir" overlay onPress={openShare} />
           {remote && !isOrganizer && <IconButton icon="more" label="Más opciones" overlay onPress={openMore} />}
         </View>
       </View>
@@ -280,7 +301,6 @@ const styles = StyleSheet.create({
   hero: { height: 340, backgroundColor: Colors.surface },
   body: { paddingHorizontal: Spacing.lg, marginTop: -Spacing.xxl, gap: Spacing.md },
   tags: { flexDirection: 'row', gap: Spacing.sm },
-  going: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   facts: {
     marginTop: Spacing.md,
     backgroundColor: Colors.surface,

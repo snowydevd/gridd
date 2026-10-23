@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 
 import { useCurrentUser } from "@/services/user";
 
+import { KIND_LABELS } from "../../convex/lib/eventKinds";
 import { DAY, UY_BOUNDS } from "../../convex/lib/validation";
 
 const PAGE_SIZE = 5
@@ -144,20 +145,7 @@ export type MeetEvent = {
 export type EventView = FunctionReturnType<typeof api.events.listUpcoming>["page"][number];
 export type EventKind = EventView["kind"];
 
-/** Etiquetas en español de los `kind` del backend (convex/lib/validators.ts), en el orden de los chips. */
-export const KIND_LABELS: Record<EventKind, string> = {
-    junada: "Encuentro",
-    rodada: "Rodada",
-    cars_and_coffee: "Cars & Coffee",
-    expo: "Exposición",
-    clasicos: "Clásicos",
-    jdm: "JDM",
-    tuning: "Tuning",
-    "4x4": "4x4",
-    motos: "Motos",
-    pista: "Pista",
-    otro: "Otro",
-};
+export { KIND_LABELS };
 export const EVENT_KINDS = Object.keys(KIND_LABELS) as EventKind[];
 
 const DAY_SHORT = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];

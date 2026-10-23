@@ -1,8 +1,9 @@
 /**
- * Carga en el deployment de desarrollo de Convex los eventos de ejemplo de la app, con sus fotos.
+ * Carga en el deployment de desarrollo de Convex los eventos de ejemplo de la app, con sus fotos, y
+ * gente de prueba (sin foto, con un auto) anotada a esos eventos.
  *
- *   bun scripts/seed-events.ts          # siembra (no duplica: saltea los slugs que ya existen)
- *   bun scripts/seed-events.ts --clear  # borra todo lo sembrado (eventos, fotos y organizadores de prueba)
+ *   bun scripts/seed-events.ts          # siembra (no duplica: saltea lo que ya existe)
+ *   bun scripts/seed-events.ts --clear  # borra todo lo sembrado (eventos, fotos, organizadores y gente)
  *
  * Las fechas son relativas al momento de correrlo, así siempre hay eventos próximos.
  * Requiere que las funciones de `convex/seed.ts` estén subidas (`bun run convex` corriendo, o `bunx convex dev --once`).
@@ -25,9 +26,9 @@ type SeedEvent = {
   placeName: string;
   lat: number;
   lon: number;
-  attendeeCount: number;
   organizerName: string;
-  image: string;
+  /** Foto de assets/images/meets; sin foto, el evento usa la portada de default. */
+  image?: string;
 };
 
 // Eventos de ejemplo, con los `kind` del backend.
@@ -43,7 +44,6 @@ const EVENTS: SeedEvent[] = [
     placeName: "Estacionamiento Carrasco, Carrasco Norte",
     lat: -34.8705,
     lon: -56.0505,
-    attendeeCount: 48,
     organizerName: "Garage 20B",
     image: "jdm-garage.jpg",
   },
@@ -59,7 +59,6 @@ const EVENTS: SeedEvent[] = [
     placeName: "Explanada de Kibón, Pocitos",
     lat: -34.9126,
     lon: -56.1408,
-    attendeeCount: 142,
     organizerName: "Montevideo Midnight Club",
     image: "midnight-rambla.jpg",
   },
@@ -74,7 +73,6 @@ const EVENTS: SeedEvent[] = [
     placeName: "Plaza Virgilio, Punta Gorda",
     lat: -34.9083,
     lon: -56.0846,
-    attendeeCount: 76,
     organizerName: "Club Clásicos UY",
     image: "clasicos-rambla.jpg",
   },
@@ -89,7 +87,6 @@ const EVENTS: SeedEvent[] = [
     placeName: "Autódromo Víctor Borrat Fabini, El Pinar",
     lat: -34.7959,
     lon: -55.9172,
-    attendeeCount: 210,
     organizerName: "Drift Uruguay",
     image: "drift-pinar.jpg",
   },
@@ -104,7 +101,6 @@ const EVENTS: SeedEvent[] = [
     placeName: "Parque Roosevelt, Canelones",
     lat: -34.8617,
     lon: -56.0182,
-    attendeeCount: 530,
     organizerName: "Fierros del Sur",
     image: "expo-fierros.jpg",
   },
@@ -119,7 +115,6 @@ const EVENTS: SeedEvent[] = [
     placeName: "Zona Franca MVD, Montevideo",
     lat: -34.8358,
     lon: -56.038,
-    attendeeCount: 95,
     organizerName: "Euro Club MVD",
     image: "euro-meet.jpg",
   },
@@ -134,11 +129,121 @@ const EVENTS: SeedEvent[] = [
     placeName: "Autódromo de El Pinar, Canelones",
     lat: -34.7959,
     lon: -55.9172,
-    attendeeCount: 180,
     organizerName: "Drift Uruguay",
     image: "gtr-neon.jpg",
   },
+  {
+    slug: "cars-and-coffee-punta",
+    title: "Cars & Coffee Punta del Este",
+    description: "Café y autos frente a la Brava, temprano y sin apuro. Deportivos, clásicos y lo que traigas.",
+    kind: "cars_and_coffee",
+    day: 1,
+    start: "09:00",
+    end: "12:00",
+    placeName: "Parada 5 de la Brava, Punta del Este",
+    lat: -34.9425,
+    lon: -54.9295,
+    organizerName: "Punta Cars & Coffee",
+    image: "login.jpg",
+  },
+  {
+    slug: "rodada-colonia",
+    title: "Rodada a Colonia",
+    description: "Salimos de Montevideo por la Ruta 1 y almorzamos en el Real de San Carlos. Ritmo tranquilo, todos los autos son bienvenidos.",
+    kind: "rodada",
+    day: 6,
+    start: "08:30",
+    end: "17:00",
+    placeName: "Plaza de Toros, Real de San Carlos, Colonia",
+    lat: -34.444,
+    lon: -57.824,
+    organizerName: "Rodadas del Litoral",
+  },
+  {
+    slug: "4x4-laguna-de-rocha",
+    title: "Travesía 4x4 Laguna de Rocha",
+    description: "Recorrido por médanos y caminos de la laguna. Se pide tracción 4x4, eslinga y ganas de embarrarse.",
+    kind: "4x4",
+    day: 8,
+    start: "10:00",
+    end: "18:00",
+    placeName: "Laguna de Rocha, La Paloma",
+    lat: -34.642,
+    lon: -54.169,
+    organizerName: "4x4 Este",
+  },
+  {
+    slug: "motos-atlantida",
+    title: "Motos en la Rambla de Atlántida",
+    description: "Encuentro de motos de todas las cilindradas. Customs, café racers y deportivas frente al mar.",
+    kind: "motos",
+    day: 13,
+    start: "15:00",
+    end: "20:00",
+    placeName: "Rambla de Atlántida, Canelones",
+    lat: -34.772,
+    lon: -55.759,
+    organizerName: "Motoqueros de la Costa",
+    image: "midnight-rambla.jpg",
+  },
+  {
+    slug: "jdm-salto-costanera",
+    title: "JDM en la Costanera de Salto",
+    description: "Primera junada JDM del litoral norte. Proyectos japoneses, música y food trucks sobre el río Uruguay.",
+    kind: "jdm",
+    day: 19,
+    start: "20:00",
+    end: "00:30",
+    placeName: "Costanera Norte, Salto",
+    lat: -31.38,
+    lon: -57.975,
+    organizerName: "Garage 20B",
+    image: "gtr-neon.jpg",
+  },
 ];
+
+type Person = { name: string; car?: { make: string; model: string; year: number } };
+
+// Gente de prueba. Sin foto (la app usa la de default); los autos son del catálogo (convex/lib/vehicleCatalog.ts).
+const PEOPLE: Person[] = [
+  { name: "Martín Pereira", car: { make: "Subaru", model: "Impreza WRX / WRX", year: 2008 } },
+  { name: "Sofía Rodríguez", car: { make: "Mazda", model: "MX-5", year: 1999 } },
+  { name: "Nicolás Fernández", car: { make: "Nissan", model: "Skyline", year: 1998 } },
+  { name: "Valentina López", car: { make: "Volkswagen", model: "Golf", year: 2016 } },
+  { name: "Federico Silva", car: { make: "Toyota", model: "Supra", year: 1995 } },
+  { name: "Camila González", car: { make: "Honda", model: "Civic", year: 2019 } },
+  { name: "Joaquín Martínez", car: { make: "Chevrolet", model: "Camaro", year: 1969 } },
+  { name: "Lucía Sosa", car: { make: "Fiat", model: "147", year: 1984 } },
+  { name: "Santiago Núñez", car: { make: "Mitsubishi", model: "Lancer Evolution", year: 2005 } },
+  { name: "Agustina Romero", car: { make: "Peugeot", model: "206", year: 2007 } },
+  { name: "Diego Cabrera", car: { make: "Ford", model: "Mustang", year: 2018 } },
+  { name: "Florencia Díaz", car: { make: "Renault", model: "Clio", year: 2012 } },
+  { name: "Matías Acosta", car: { make: "Nissan", model: "Silvia", year: 1997 } },
+  { name: "Carolina Ramírez", car: { make: "BMW", model: "Serie 3", year: 2011 } },
+  { name: "Gonzalo Méndez", car: { make: "Ford", model: "Falcon", year: 1978 } },
+  { name: "Micaela Torres", car: { make: "Audi", model: "A3", year: 2015 } },
+  { name: "Bruno Castro", car: { make: "Mazda", model: "RX-7", year: 1993 } },
+  { name: "Paula Suárez", car: { make: "Volkswagen", model: "Gol", year: 2010 } },
+  { name: "Emiliano Vázquez", car: { make: "Nissan", model: "350Z", year: 2006 } },
+  { name: "Rocío Benítez", car: { make: "Chevrolet", model: "Chevette", year: 1987 } },
+  { name: "Tomás Olivera", car: { make: "BMW", model: "M3", year: 2002 } },
+  { name: "Julieta Morales", car: { make: "Toyota", model: "Corolla", year: 2020 } },
+  { name: "Facundo Giménez", car: { make: "Renault", model: "12", year: 1980 } },
+  { name: "Lorena Ferreira", car: { make: "Ford", model: "Ranger", year: 2021 } },
+  { name: "Andrés Correa", car: { make: "Peugeot", model: "504", year: 1979 } },
+  { name: "Mariana Pintos", car: { make: "Volkswagen", model: "Amarok", year: 2017 } },
+  { name: "Pablo Rivero" },
+  { name: "Natalia Cardozo" },
+];
+
+/** Quiénes van a cada evento: un tramo distinto del plantel por evento, siempre el mismo. */
+function attendancesFor(events: SeedEvent[]) {
+  return events.map((event, i) => {
+    const going = Math.min(PEOPLE.length, 6 + ((i * 7) % 17));
+    const names = Array.from({ length: going }, (_, k) => PEOPLE[(i * 5 + k) % PEOPLE.length].name);
+    return { slug: event.slug, names };
+  });
+}
 
 const IMAGES_DIR = join(import.meta.dirname, "..", "assets", "images", "meets");
 
@@ -177,26 +282,44 @@ async function upload(file: string) {
 
 async function seed() {
   const existing = new Set(convexRun<string[]>("seed:existingSlugs", { slugs: EVENTS.map((e) => e.slug) }));
-  const pending = EVENTS.filter((e) => !existing.has(e.slug));
-  if (pending.length === 0) {
-    console.log("Ya estaban todos los eventos sembrados. Para empezar de cero: bun scripts/seed-events.ts --clear");
-    return;
-  }
 
+  // Van todos: los nuevos se crean y los que ya estaban se actualizan con fechas a partir de hoy.
+  // Las fotos se suben sólo para los nuevos.
   const events = [];
-  for (const { day, start, end, image, ...event } of pending) {
-    console.log(`Subiendo foto de "${event.title}"…`);
+  for (const { day, start, end, image, ...event } of EVENTS) {
     const startsAt = at(day, start);
-    events.push({ ...event, startsAt, endsAt: at(day, end, startsAt), imageId: await upload(image) });
+    let imageId: string | undefined;
+    if (image && !existing.has(event.slug)) {
+      console.log(`Subiendo foto de "${event.title}"…`);
+      imageId = await upload(image);
+    }
+    // El contador arranca en 0: lo pone insertPeople según las anotaciones reales.
+    events.push({ ...event, attendeeCount: 0, startsAt, endsAt: at(day, end, startsAt), imageId });
   }
-  const result = convexRun<{ inserted: number; skipped: number }>("seed:insertEvents", { events });
-  console.log(`Listo: ${result.inserted} eventos nuevos, ${existing.size + result.skipped} ya existían.`);
+  const result = convexRun<{ inserted: number; updated: number; skipped: number }>("seed:insertEvents", { events });
+  console.log(
+    `Eventos: ${result.inserted} nuevos, ${result.updated} con fechas actualizadas` +
+      (result.skipped ? `, ${result.skipped} salteados (el slug es de un evento real)` : "") +
+      ".",
+  );
+
+  // También corre con eventos ya sembrados: completa anotaciones y corrige contadores viejos.
+  const people = convexRun<{ people: number; attendances: number }>("seed:insertPeople", {
+    people: PEOPLE,
+    attendances: attendancesFor(EVENTS),
+  });
+  console.log(`Gente: ${people.people} nuevos, ${people.attendances} anotaciones nuevas.`);
 }
 
 function clear() {
   const organizerNames = [...new Set(EVENTS.map((e) => e.organizerName))];
-  const result = convexRun<{ events: number; organizers: number }>("seed:clear", { organizerNames });
-  console.log(`Borrados ${result.events} eventos y ${result.organizers} organizadores de prueba.`);
+  const result = convexRun<{ events: number; organizers: number; people: number }>("seed:clear", {
+    organizerNames,
+    personNames: PEOPLE.map((p) => p.name),
+  });
+  console.log(
+    `Borrados ${result.events} eventos, ${result.organizers} organizadores y ${result.people} personas de prueba.`,
+  );
 }
 
 if (process.argv.includes("--clear")) clear();

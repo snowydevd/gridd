@@ -11,7 +11,10 @@
       "bundleIdentifier": "com.gridd.app",
       "associatedDomains": [
         "applinks:gridd.app"
-      ]
+      ],
+      "infoPlist": {
+        "NSCalendarsUsageDescription": "Gridd agrega a tu calendario los encuentros que elijas."
+      }
     },
     "android": {
       "package": "com.gridd.app",
