@@ -3,27 +3,30 @@ import * as Device from 'expo-device';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
-import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { showDialog } from '@/components/dialog';
 import { Icon, type IconName } from '@/components/icon';
 import { Text } from '@/components/text';
+import { ThemeOptions } from '@/components/theme-options';
 import { Button, Card, IconButton } from '@/components/ui';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { carErrorMessage } from '@/services/cars';
 import { useSearchRadius } from '@/services/search-radius';
 import { useCurrentUser, useDeleteAccount, useInterests } from '@/services/user';
+import { makeStyles, themePreferenceLabel, useTheme, type Palette } from '@/theme';
 
 const SITE = 'https://gridd.app';
 const SUPPORT_EMAIL = 'hola@gridd.app';
 
 const versionLabel = Constants.expoConfig?.version ?? '';
 
-function openPage(path: string) {
+/** El navegador interno toma los colores del tema activo. */
+function openPage(path: string, c: Palette) {
   void WebBrowser.openBrowserAsync(`${SITE}${path}`, {
-    toolbarColor: Colors.canvas,
-    controlsColor: Colors.accent,
+    toolbarColor: c.canvas,
+    controlsColor: c.accentText,
   });
 }
 
@@ -46,7 +49,10 @@ function deviceInfo() {
 }
 
 export default function AccountDetailsScreen() {
+  const { colors: c, preference, setPreference } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
+  const [themeOpen, setThemeOpen] = useState(false);
   const { user, isLoading, isGuest, isPublisher, signOut } = useCurrentUser();
   const { interests } = useInterests();
   const { radius, setRadius } = useSearchRadius();
@@ -57,7 +63,7 @@ export default function AccountDetailsScreen() {
   if (isLoading) {
     return (
       <View style={[styles.screen, styles.centered]}>
-        <ActivityIndicator color={Colors.accent} />
+        <ActivityIndicator color={c.accentText} />
       </View>
     );
   }
@@ -112,7 +118,7 @@ export default function AccountDetailsScreen() {
       <View style={styles.identity}>
         <View style={styles.nameRow}>
           <Text variant="title">{user.name ?? 'Sin nombre'}</Text>
-          {isPublisher && <Icon name="verified" size={18} color={Colors.accent} />}
+          {isPublisher && <Icon name="verified" size={18} color={c.accentText} />}
         </View>
         <Text variant="label" tone="secondary">
           {user.email}
@@ -146,15 +152,47 @@ export default function AccountDetailsScreen() {
         )}
       </Section> */}
 
+      <Section title="Preferencias">
+        <Row
+          icon="appearance"
+          label="Apariencia"
+          value={themePreferenceLabel(preference)}
+          expanded={themeOpen}
+          onPress={() => setThemeOpen((open) => !open)}
+          last={!themeOpen}
+        />
+        {themeOpen && (
+          <ThemeOptions
+            value={preference}
+            onSelect={(option) => {
+              setPreference(option);
+              setThemeOpen(false);
+            }}
+            optionStyle={styles.radiusOption}
+          />
+        )}
+      </Section>
+
+      {user.hasPassword && user.email && (
+        <Section title="Seguridad">
+          <Row
+            icon="lock"
+            label="Cambiar contraseña"
+            onPress={() => router.push({ pathname: '/email', params: { mode: 'change', email: user.email! } })}
+            last
+          />
+        </Section>
+      )}
+
       <Section title="Ayuda">
-        <Row icon="help" label="Contacto" external onPress={() => openPage('/contacto')} />
+        <Row icon="help" label="Contacto" external onPress={() => openPage('/contacto', c)} />
         <Row icon="mail" label="Reportar un problema" onPress={() => sendMail('Problema en la app', deviceInfo())} last />
       </Section>
 
       <Section title="Legal">
-        <Row icon="document" label="Términos y condiciones" external onPress={() => openPage('/terminos')} />
-        <Row icon="lock" label="Privacidad" external onPress={() => openPage('/privacidad')} />
-        <Row icon="rules" label="Normas de la comunidad" external onPress={() => openPage('/normas')} last />
+        <Row icon="document" label="Términos y condiciones" external onPress={() => openPage('/terminos', c)} />
+        <Row icon="lock" label="Privacidad" external onPress={() => openPage('/privacidad', c)} />
+        <Row icon="rules" label="Normas de la comunidad" external onPress={() => openPage('/normas', c)} last />
       </Section>
 
       {/* flexGrow + marginTop auto: con poco contenido queda al fondo de la pantalla. */}
@@ -175,6 +213,7 @@ export default function AccountDetailsScreen() {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={styles.section}>
       <Text variant="overline" tone="secondary">
@@ -199,13 +238,15 @@ type RowProps = {
 };
 
 function Row({ icon, label, value, destructive, last, expanded, external, onPress }: RowProps) {
-  const color = destructive ? Colors.error : Colors.text;
+  const { colors: c } = useTheme();
+  const styles = useStyles();
+  const color = destructive ? c.error : c.text;
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole={external ? 'link' : 'button'}
       style={({ pressed }) => [styles.row, !last && styles.rowBorder, pressed && { opacity: 0.7 }]}>
-      <Icon name={icon} size={20} color={destructive ? Colors.error : Colors.textSecondary} />
+      <Icon name={icon} size={20} color={destructive ? c.error : c.textSecondary} />
       <Text variant="heading" style={[styles.rowLabel, { color, fontSize: 16 }]}>
         {label}
       </Text>
@@ -216,15 +257,15 @@ function Row({ icon, label, value, destructive, last, expanded, external, onPres
       )}
       {!destructive && (
         <View style={expanded && { transform: [{ rotate: '90deg' }] }}>
-          <Icon name={external ? 'external' : 'chevron'} size={18} color={Colors.textSecondary} />
+          <Icon name={external ? 'external' : 'chevron'} size={18} color={c.textSecondary} />
         </View>
       )}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   content: { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxl, gap: Spacing.xl },
   centered: { alignItems: 'center', justifyContent: 'center' },
   guest: { gap: Spacing.md, paddingHorizontal: Spacing.lg },
@@ -236,10 +277,10 @@ const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
   list: { paddingHorizontal: Spacing.lg },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, minHeight: 56 },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: c.border },
   rowLabel: { flex: 1 },
   // Sangría alineada con el texto de las filas. Los bordes entre opciones los pone RadiusOptions.
   radiusOption: { paddingLeft: Spacing.xl + Spacing.md },
   footer: { marginTop: 'auto', paddingHorizontal: Spacing.lg },
   version: { textAlign: 'center', marginTop: Spacing.sm },
-});
+}));

@@ -1,26 +1,29 @@
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { showDialog } from '@/components/dialog';
 import { Text } from '@/components/text';
 import { Button, Chip, IconButton } from '@/components/ui';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { EVENT_KINDS, KIND_LABELS, type EventKind } from '@/services/events';
 import { useCurrentUser, useInterests } from '@/services/user';
+import { makeStyles, useTheme } from '@/theme';
 
 // "Otro" no dice nada de los gustos del usuario.
 const KINDS = EVENT_KINDS.filter((k) => k !== 'otro');
 
 export default function InterestsScreen() {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const { isLoading, isGuest } = useCurrentUser();
 
   if (isGuest) return <Redirect href="/login" />;
   if (isLoading) {
     return (
       <View style={[styles.screen, styles.centered]}>
-        <ActivityIndicator color={Colors.accent} />
+        <ActivityIndicator color={c.accentText} />
       </View>
     );
   }
@@ -29,6 +32,7 @@ export default function InterestsScreen() {
 }
 
 function InterestsForm() {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const { interests, setInterests } = useInterests();
   const [selected, setSelected] = useState<EventKind[]>(interests);
@@ -74,8 +78,8 @@ function InterestsForm() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   centered: { alignItems: 'center', justifyContent: 'center' },
   header: {
     paddingHorizontal: Spacing.lg,
@@ -87,4 +91,4 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.xl },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   footer: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
-});
+}));

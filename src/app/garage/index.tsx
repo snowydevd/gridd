@@ -1,18 +1,21 @@
 import { Redirect, router } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Button, Card, IconButton, Tag } from '@/components/ui';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { carTitle, useMyCars, type Car } from '@/services/cars';
 import { useCurrentUser } from '@/services/user';
+import { makeStyles, useTheme } from '@/theme';
 
 /** Tope del backend (convex/cars.ts MAX_CARS). */
 const MAX_CARS = 10;
 
 export default function GarageScreen() {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const { isLoading: userLoading, isGuest } = useCurrentUser();
   const { cars, isLoading } = useMyCars();
@@ -31,12 +34,12 @@ export default function GarageScreen() {
 
       {isLoading || userLoading ? (
         <View style={styles.centered}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={c.accentText} />
         </View>
       ) : cars.length === 0 ? (
         <View style={[styles.centered, styles.empty]}>
           <View style={styles.emptyIcon}>
-            <Icon name="car" size={28} color={Colors.textSecondary} />
+            <Icon name="car" size={28} color={c.textSecondary} />
           </View>
           <Text variant="heading">Tu garage está vacío</Text>
           <Text tone="secondary" style={styles.emptyText}>
@@ -63,6 +66,8 @@ export default function GarageScreen() {
 }
 
 function CarRow({ car }: { car: Car }) {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -71,7 +76,7 @@ function CarRow({ car }: { car: Car }) {
       style={({ pressed }) => pressed && styles.pressed}>
       <Card style={styles.row}>
         <View style={styles.rowIcon}>
-          <Icon name="car" size={20} color={Colors.accent} />
+          <Icon name="car" size={20} color={c.accentText} />
         </View>
         <View style={styles.rowBody}>
           <Text variant="heading" numberOfLines={1}>
@@ -82,14 +87,14 @@ function CarRow({ car }: { car: Car }) {
           </Text>
         </View>
         {car.isModified && <Tag label="Modificado" tone="accent" />}
-        <Icon name="edit" size={18} color={Colors.textSecondary} />
+        <Icon name="edit" size={18} color={c.textSecondary} />
       </Card>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   header: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
@@ -103,9 +108,9 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
@@ -118,10 +123,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: Radius.md,
-    backgroundColor: Colors.raised,
+    backgroundColor: c.raised,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowBody: { flex: 1, gap: 2 },
   pressed: { opacity: 0.75 },
-});
+}));

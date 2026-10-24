@@ -21,7 +21,7 @@ import { EventMap, type EventMapHandle } from '@/components/event-map';
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Button, Checkbox, Chip, Fade, IconButton, Tag } from '@/components/ui';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { carErrorMessage } from '@/services/cars';
 import {
   EVENT_KINDS,
@@ -34,6 +34,7 @@ import {
 } from '@/services/events';
 import { useLastKnownLocation, type LatLng } from '@/services/location';
 import { useCurrentUser } from '@/services/user';
+import { DarkScope, makeStyles, useTheme } from '@/theme';
 import { UY_BOUNDS } from '../../convex/lib/validation';
 
 const STEPS = ['Evento', 'Cuándo', 'Dónde', 'Portada'] as const;
@@ -97,6 +98,8 @@ export default function PublishScreen() {
 }
 
 function PublishForm({ initial }: { initial?: EventView }) {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   // Al editar se arranca en la revisión: desde ahí se toca la sección a cambiar.
   const [step, setStep] = useState(initial ? REVIEW : 0);
@@ -278,7 +281,7 @@ function PublishForm({ initial }: { initial?: EventView }) {
               value={name}
               onChangeText={setName}
               placeholder="Ej: Juntada Nocturna Pocitos"
-              placeholderTextColor={Colors.textDisabled}
+              placeholderTextColor={c.textDisabled}
               style={styles.input}
               maxLength={60}
               autoFocus={!initial}
@@ -354,22 +357,22 @@ function PublishForm({ initial }: { initial?: EventView }) {
               value={placeName}
               onChangeText={setPlaceName}
               placeholder="Nombre del lugar, ej: Explanada de Kibón"
-              placeholderTextColor={Colors.textDisabled}
+              placeholderTextColor={c.textDisabled}
               style={styles.input}
               maxLength={120}
             />
             <View style={[styles.search, { marginTop: Spacing.md }]}>
-              <Icon name="search" size={18} color={Colors.textSecondary} />
+              <Icon name="search" size={18} color={c.textSecondary} />
               <TextInput
                 value={query}
                 onChangeText={setQuery}
                 onSubmitEditing={searchPlace}
                 placeholder="Buscar dirección"
-                placeholderTextColor={Colors.textDisabled}
+                placeholderTextColor={c.textDisabled}
                 returnKeyType="search"
                 style={styles.searchInput}
               />
-              {searching && <ActivityIndicator size="small" color={Colors.accent} />}
+              {searching && <ActivityIndicator size="small" color={c.accentText} />}
             </View>
             <EventMap
               ref={map}
@@ -413,7 +416,7 @@ function PublishForm({ initial }: { initial?: EventView }) {
                 <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
               ) : (
                 <>
-                  <Icon name="camera" size={26} color={Colors.textSecondary} />
+                  <Icon name="camera" size={26} color={c.textSecondary} />
                   <Text variant="label" tone="secondary">
                     Subir foto (opcional)
                   </Text>
@@ -440,7 +443,7 @@ function PublishForm({ initial }: { initial?: EventView }) {
               onBlur={() => (writingDescription.current = false)}
               onContentSizeChange={revealDescription}
               placeholder="Algo que la gente tenga que saber"
-              placeholderTextColor={Colors.textDisabled}
+              placeholderTextColor={c.textDisabled}
               style={[styles.input, styles.textarea]}
               multiline
               maxLength={300}
@@ -453,25 +456,28 @@ function PublishForm({ initial }: { initial?: EventView }) {
             <StepTitle title={initial ? 'Revisá los cambios' : 'Revisá tu evento'} />
             <View style={styles.preview}>
               <Image source={coverUri ? { uri: coverUri } : DEFAULT_COVER} style={StyleSheet.absoluteFill} contentFit="cover" />
-              <Fade style={{ top: '30%' }} opacity={0.95} />
-              <View style={styles.previewBody}>
-                {kind && <Tag label={KIND_LABELS[kind]} />}
-                <Text variant="title" numberOfLines={2}>
-                  {name}
-                </Text>
-                <Text variant="label" tone="secondary">
-                  {day && formatDay(day)} · {startTime && formatTime(startTime)}
-                  {endTime && !noEndTime ? ` – ${formatTime(endTime)}` : ''} hs
-                </Text>
-                <Text variant="label" tone="secondary" numberOfLines={1}>
-                  {placeName}
-                </Text>
-              </View>
+              {/* Igual que el destacado de Inicio: tarjeta oscura en los dos temas. */}
+              <DarkScope>
+                <Fade style={{ top: '30%' }} opacity={0.95} />
+                <View style={styles.previewBody}>
+                  {kind && <Tag label={KIND_LABELS[kind]} overlay />}
+                  <Text variant="title" numberOfLines={2}>
+                    {name}
+                  </Text>
+                  <Text variant="label" tone="secondary">
+                    {day && formatDay(day)} · {startTime && formatTime(startTime)}
+                    {endTime && !noEndTime ? ` – ${formatTime(endTime)}` : ''} hs
+                  </Text>
+                  <Text variant="label" tone="secondary" numberOfLines={1}>
+                    {placeName}
+                  </Text>
+                </View>
+              </DarkScope>
             </View>
             <View style={styles.editRow}>
               {STEPS.map((s, i) => (
                 <Pressable key={s} onPress={() => setStep(i)} style={styles.editChip}>
-                  <Icon name="edit" size={14} color={Colors.textSecondary} />
+                  <Icon name="edit" size={14} color={c.textSecondary} />
                   <Text variant="caption" tone="secondary">
                     {s}
                   </Text>
@@ -497,6 +503,7 @@ function PublishForm({ initial }: { initial?: EventView }) {
 }
 
 function StepTitle({ title }: { title: string }) {
+  const styles = useStyles();
   return (
     <Text variant="display" style={styles.stepTitle}>
       {title}
@@ -504,13 +511,13 @@ function StepTitle({ title }: { title: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   header: { paddingHorizontal: Spacing.lg, gap: Spacing.md },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   progress: { flexDirection: 'row', gap: 6 },
-  progressSeg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: Colors.border },
-  progressSegActive: { backgroundColor: Colors.accent },
+  progressSeg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: c.border },
+  progressSegActive: { backgroundColor: c.accentText },
   body: { padding: Spacing.lg, paddingTop: Spacing.xl },
   stepTitle: { marginBottom: Spacing.xl },
   fieldLabel: { marginTop: Spacing.xl, marginBottom: Spacing.md },
@@ -518,10 +525,10 @@ const styles = StyleSheet.create({
     minHeight: 56,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
-    color: Colors.text,
+    borderColor: c.border,
+    color: c.text,
     fontFamily: Fonts.medium,
     fontSize: 17,
   },
@@ -534,17 +541,17 @@ const styles = StyleSheet.create({
     height: 52,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
-  searchInput: { flex: 1, color: Colors.text, fontFamily: Fonts.body, fontSize: 15, height: '100%' },
+  searchInput: { flex: 1, color: c.text, fontFamily: Fonts.body, fontSize: 15, height: '100%' },
   map: {
     height: 240,
     marginVertical: Spacing.lg,
     borderRadius: Radius.xl,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   placeRow: {
     flexDirection: 'row',
@@ -552,32 +559,32 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   cover: {
     width: '100%',
     aspectRatio: 16 / 10,
     borderRadius: Radius.lg,
     overflow: 'hidden',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   coverActions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md },
   coverHint: { marginTop: Spacing.sm },
-  error: { color: Colors.error },
+  error: { color: c.error },
   coverUpload: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
     borderStyle: 'dashed',
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   preview: {
     height: 300,
     borderRadius: Radius.xl,
     overflow: 'hidden',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: 'flex-end',
   },
   previewBody: { padding: Spacing.lg, gap: Spacing.xs },
@@ -590,12 +597,12 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: Radius.full,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   footer: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
-});
+}));

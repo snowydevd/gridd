@@ -1,21 +1,23 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EventRow } from '@/components/event-card';
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Chip, IconButton } from '@/components/ui';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { EVENT_KINDS, KIND_LABELS, toCardEvent, useUpcomingEvents, type EventKind } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
 import { useSearchRadius, withinRadius } from '@/services/search-radius';
+import { makeStyles, useTheme } from '@/theme';
 
 const PAGE_SIZE = 10;
 
 /** Todos los próximos encuentros por fecha, con filtro por categoría. */
 export default function EventsScreen() {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const [kind, setKind] = useState<EventKind | null>(null);
 
@@ -43,6 +45,8 @@ export default function EventsScreen() {
 }
 
 function EventList({ kind, bottomInset }: { kind?: EventKind; bottomInset: number }) {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const location = useLastKnownLocation();
   const { radius } = useSearchRadius();
   const { events, isLoading, canLoadMore, loadMore } = useUpcomingEvents({ kind, pageSize: PAGE_SIZE });
@@ -60,7 +64,7 @@ function EventList({ kind, bottomInset }: { kind?: EventKind; bottomInset: numbe
   }, [canLoadMore, cards.length, wanted, loadMore]);
 
   if (isLoading) {
-    return <ActivityIndicator color={Colors.accent} style={styles.loading} />;
+    return <ActivityIndicator color={c.accentText} style={styles.loading} />;
   }
 
   return (
@@ -71,12 +75,12 @@ function EventList({ kind, bottomInset }: { kind?: EventKind; bottomInset: numbe
       onEndReached={() => setWanted(cards.length + PAGE_SIZE)}
       onEndReachedThreshold={0.5}
       contentContainerStyle={[styles.list, { paddingBottom: bottomInset + Spacing.xl }]}
-      ListFooterComponent={canLoadMore ? <ActivityIndicator color={Colors.accent} style={styles.more} /> : null}
+      ListFooterComponent={canLoadMore ? <ActivityIndicator color={c.accentText} style={styles.more} /> : null}
       ListEmptyComponent={
         canLoadMore ? null : (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Icon name="calendar" size={26} color={Colors.textSecondary} />
+              <Icon name="calendar" size={26} color={c.textSecondary} />
             </View>
             <Text variant="heading">No hay encuentros</Text>
             <Text tone="secondary" style={styles.emptyText}>
@@ -91,8 +95,8 @@ function EventList({ kind, bottomInset }: { kind?: EventKind; bottomInset: numbe
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   header: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
@@ -109,12 +113,12 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: Radius.full,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
   },
   emptyText: { textAlign: 'center' },
-});
+}));

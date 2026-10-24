@@ -10,18 +10,21 @@ import { Icon } from '@/components/icon';
 import { RadiusOptions } from '@/components/radius-options';
 import { Text } from '@/components/text';
 import { Button, Fade, SectionHeader, Tag, Wordmark } from '@/components/ui';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useMyUpcomingEvents } from '@/services/attendance';
 import { toCardEvent, useUpcomingEvents } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
 import { searchRadiusLabel, useSearchRadius, withinRadius } from '@/services/search-radius';
 import { useCurrentUser, useInterests } from '@/services/user';
+import { DarkScope, makeStyles, useTheme } from '@/theme';
 
 /** Cuántos eventos trae Inicio de una vez: el destacado y la base de "Para vos". */
 const HOME_EVENTS = 20;
 const FOR_YOU_SIZE = 5;
 
 export default function HomeScreen() {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const location = useLastKnownLocation();
   const { isPublisher } = useCurrentUser();
@@ -58,11 +61,11 @@ export default function HomeScreen() {
 
       {isLoading ? (
         <View style={[styles.hero, styles.centered]}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={c.accentText} />
         </View>
       ) : !featured ? (
         <View style={[styles.hero, styles.centered, styles.emptyHero]}>
-          <Icon name="calendar" size={28} color={Colors.textSecondary} />
+          <Icon name="calendar" size={28} color={c.textSecondary} />
           <Text variant="heading">No hay encuentros próximos</Text>
           <Text tone="secondary" style={styles.emptyText}>
             {isPublisher ? 'Sé el primero en publicar uno.' : 'Volvé en un rato, se publican seguido.'}
@@ -77,21 +80,24 @@ export default function HomeScreen() {
           onPress={() => openEvent(featured.card.id)}
           style={({ pressed }) => [styles.hero, pressed && { opacity: 0.85 }]}>
           <Image source={featured.card.image} style={StyleSheet.absoluteFill} contentFit="cover" />
-          <Fade style={{ top: '35%' }} opacity={0.95} />
-          <View style={styles.heroTop}>
-            <Tag label={featured.card.isToday ? 'Hoy' : 'Próximo'} tone="accent" />
-          </View>
-          <View style={styles.heroBody}>
-            <WhenLine event={featured.card} />
-            <Text variant="display" numberOfLines={2}>
-              {featured.card.title}
-            </Text>
-            <Text variant="label" tone="secondary" numberOfLines={1}>
-              {featured.card.distanceKm === undefined
-                ? featured.card.place
-                : `${featured.card.place} · ${formatKm(featured.card.distanceKm)}`}
-            </Text>
-          </View>
+          {/* Tarjeta oscura en los dos temas: el texto va sobre la foto oscurecida. */}
+          <DarkScope>
+            <Fade style={{ top: '35%' }} opacity={0.95} />
+            <View style={styles.heroTop}>
+              <Tag label={featured.card.isToday ? 'Hoy' : 'Próximo'} tone="accent" />
+            </View>
+            <View style={styles.heroBody}>
+              <WhenLine event={featured.card} />
+              <Text variant="display" numberOfLines={2}>
+                {featured.card.title}
+              </Text>
+              <Text variant="label" tone="secondary" numberOfLines={1}>
+                {featured.card.distanceKm === undefined
+                  ? featured.card.place
+                  : `${featured.card.place} · ${formatKm(featured.card.distanceKm)}`}
+              </Text>
+            </View>
+          </DarkScope>
         </Pressable>
       )}
 
@@ -120,6 +126,8 @@ export default function HomeScreen() {
 
 /** Cápsula con el rango de "Cerca tuyo"; al tocarla despliega las opciones debajo. */
 function RadiusPill() {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const { isSignedIn } = useCurrentUser();
   const { radius, setRadius } = useSearchRadius();
   const pill = useRef<View>(null);
@@ -144,7 +152,7 @@ function RadiusPill() {
         style={({ pressed }) => [styles.location, pressed && { opacity: 0.75 }]}
         accessibilityRole="button"
         accessibilityLabel={`Rango de búsqueda: ${searchRadiusLabel(radius)}. Cambiar rango`}>
-        <Icon name="navigate" size={14} color={Colors.textSecondary} />
+        <Icon name="navigate" size={14} color={c.textSecondary} />
         <Text variant="label">{searchRadiusLabel(radius)}</Text>
       </Pressable>
 
@@ -171,6 +179,8 @@ function RadiusPill() {
 
 /** Foto del usuario; sin foto, sus iniciales con borde punteado para invitar a subirla. */
 function ProfilePill() {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const { user, isSignedIn } = useCurrentUser();
   const name = user?.name?.trim();
   const initials = name
@@ -193,14 +203,14 @@ function ProfilePill() {
       ) : initials ? (
         <Text variant="label">{initials}</Text>
       ) : (
-        <Icon name="person" size={18} color={Colors.textSecondary} />
+        <Icon name="person" size={18} color={c.textSecondary} />
       )}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxl },
   header: {
     flexDirection: 'row',
@@ -217,10 +227,10 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   avatarImage: { width: 36, height: 36, borderRadius: 18 },
-  avatarEmpty: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: Colors.accent },
+  avatarEmpty: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: c.accentText },
   location: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -229,7 +239,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     borderRadius: Radius.full,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   radiusMenu: {
     position: 'absolute',
@@ -238,23 +248,23 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xs,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   radiusMenuTitle: { marginBottom: Spacing.xs },
   hero: {
     height: 380,
     borderRadius: Radius.xl,
     overflow: 'hidden',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: 'space-between',
   },
   centered: { alignItems: 'center', justifyContent: 'center' },
-  emptyHero: { gap: Spacing.sm, padding: Spacing.xl, borderWidth: 1, borderColor: Colors.border },
+  emptyHero: { gap: Spacing.sm, padding: Spacing.xl, borderWidth: 1, borderColor: c.border },
   emptyText: { textAlign: 'center' },
   emptyCta: { alignSelf: 'stretch', marginTop: Spacing.md },
   heroTop: { padding: Spacing.lg },
   heroBody: { padding: Spacing.lg, gap: Spacing.xs },
   section: { marginTop: Spacing.xxl },
-});
+}));

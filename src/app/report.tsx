@@ -1,17 +1,18 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { showDialog } from '@/components/dialog';
 import { Text } from '@/components/text';
 import { Button, Chip, IconButton } from '@/components/ui';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { carErrorMessage } from '@/services/cars';
 import type { EventView } from '@/services/events';
 import type { Id } from '../../convex/_generated/dataModel';
 import { REPORT_REASONS, useReportEvent, useReportUser, type ReportReason } from '@/services/reports';
 import { useCurrentUser } from '@/services/user';
+import { makeStyles, useTheme } from '@/theme';
 
 const MAX_NOTE = 500;
 
@@ -29,6 +30,8 @@ export default function ReportScreen() {
 }
 
 function ReportForm({ target, title }: { target: Target; title?: string }) {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const reportEvent = useReportEvent();
   const reportUser = useReportUser();
@@ -84,7 +87,7 @@ function ReportForm({ target, title }: { target: Target; title?: string }) {
             value={note}
             onChangeText={setNote}
             placeholder="Lo que nos ayude a revisarlo"
-            placeholderTextColor={Colors.textDisabled}
+            placeholderTextColor={c.textDisabled}
             style={styles.textarea}
             multiline
             maxLength={MAX_NOTE}
@@ -99,8 +102,8 @@ function ReportForm({ target, title }: { target: Target; title?: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   header: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
@@ -115,13 +118,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
-    color: Colors.text,
+    borderColor: c.border,
+    color: c.text,
     fontFamily: Fonts.body,
     fontSize: 15,
     textAlignVertical: 'top',
   },
   footer: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
-});
+}));

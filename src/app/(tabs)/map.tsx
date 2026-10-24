@@ -8,9 +8,10 @@ import { EventRow } from '@/components/event-card';
 import { EventMap, type EventMapHandle } from '@/components/event-map';
 import { Text } from '@/components/text';
 import { Chip, IconButton } from '@/components/ui';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { EVENT_KINDS, KIND_LABELS, toCardEvent, useMapEvents, type EventKind } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
+import { makeStyles } from '@/theme';
 
 // Montevideo + Costa de Oro.
 const INITIAL_REGION = { latitude: -34.86, longitude: -56.04, latitudeDelta: 0.2, longitudeDelta: 0.24 };
@@ -19,6 +20,7 @@ const MAP_PADDING_TOP = 56;
 const MAP_PADDING_BOTTOM = 150;
 
 export default function MapScreen() {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const map = useRef<EventMapHandle>(null);
   const location = useLastKnownLocation();
@@ -105,8 +107,8 @@ export default function MapScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   chipsScroll: { position: 'absolute', left: 0, right: 0, flexGrow: 0 },
   chips: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
   bottom: {
@@ -118,12 +120,12 @@ const styles = StyleSheet.create({
   },
   locate: { alignSelf: 'flex-end' },
   sheet: {
-    backgroundColor: Colors.raised,
+    backgroundColor: c.raised,
     borderRadius: Radius.xl,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
   },
   empty: { padding: Spacing.lg, alignItems: 'center' },
-});
+}));

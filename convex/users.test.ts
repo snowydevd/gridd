@@ -19,6 +19,19 @@ describe("users.me", () => {
       role: "user",
     });
   });
+
+  test("hasPassword sólo con cuenta de email y contraseña", async () => {
+    const t = setup();
+    const { id, as } = await makeUser(t);
+    const addAccount = (provider: string) =>
+      t.run((ctx) => ctx.db.insert("authAccounts", { userId: id, provider, providerAccountId: `${provider}-${id}` }));
+
+    expect((await as.query(api.users.me, {}))?.hasPassword).toBe(false);
+    await addAccount("google");
+    expect((await as.query(api.users.me, {}))?.hasPassword).toBe(false);
+    await addAccount("password");
+    expect((await as.query(api.users.me, {}))?.hasPassword).toBe(true);
+  });
 });
 
 describe("users.updateProfile", () => {

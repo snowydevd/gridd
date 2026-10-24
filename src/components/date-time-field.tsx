@@ -1,10 +1,11 @@
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
+import { makeStyles, useTheme } from '@/theme';
 
 export type DateTimeFieldProps = {
   mode: 'date' | 'time';
@@ -33,6 +34,8 @@ export function DateTimeField({
   minimumDate,
   accessibilityLabel,
 }: DateTimeFieldProps) {
+  const { colors: c, scheme } = useTheme();
+  const styles = useStyles();
   const [open, setOpen] = useState(false);
 
   return (
@@ -43,8 +46,8 @@ export function DateTimeField({
         accessibilityState={{ expanded: open }}
         onPress={() => setOpen(!open)}
         style={({ pressed }) => [styles.field, open && styles.fieldOpen, pressed && styles.pressed]}>
-        <Icon name={mode === 'date' ? 'calendar' : 'clock'} size={18} color={Colors.textSecondary} />
-        <Text variant="label" style={[styles.value, !value && { color: Colors.textDisabled }]}>
+        <Icon name={mode === 'date' ? 'calendar' : 'clock'} size={18} color={c.textSecondary} />
+        <Text variant="label" style={[styles.value, !value && { color: c.textDisabled }]}>
           {value ? format(value) : placeholder}
         </Text>
       </Pressable>
@@ -57,8 +60,8 @@ export function DateTimeField({
           display={Platform.OS === 'ios' ? (mode === 'date' ? 'inline' : 'spinner') : 'default'}
           is24Hour
           locale="es_UY"
-          themeVariant="dark"
-          accentColor={Colors.accent}
+          themeVariant={scheme}
+          accentColor={c.accentText}
           minimumDate={minimumDate}
           onValueChange={(_, date) => {
             onChange(date);
@@ -73,7 +76,7 @@ export function DateTimeField({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   field: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -81,12 +84,12 @@ const styles = StyleSheet.create({
     height: 52,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
-  fieldOpen: { borderColor: Colors.accent },
+  fieldOpen: { borderColor: c.accentText },
   pressed: { opacity: 0.7 },
-  value: { flex: 1, color: Colors.text },
+  value: { flex: 1, color: c.text },
   inline: { marginTop: Spacing.sm },
-});
+}));

@@ -3,7 +3,8 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/text';
 import { Button } from '@/components/ui';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
+import { makeStyles } from '@/theme';
 
 export type DialogButton = {
   text: string;
@@ -41,6 +42,7 @@ function close(button?: DialogButton) {
 
 /** Dibuja el diálogo de turno. Va una sola vez, en el layout raíz. */
 export function DialogProvider() {
+  const styles = useStyles();
   const dialog = useSyncExternalStore(subscribe, () => queue[0]);
   if (!dialog) return null;
 
@@ -81,7 +83,7 @@ export function DialogProvider() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   backdrop: {
     flex: 1,
     justifyContent: 'center',
@@ -95,9 +97,9 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     padding: Spacing.xl,
     borderRadius: Radius.xl,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   buttons: { gap: Spacing.sm, marginTop: Spacing.md },
-});
+}));

@@ -1,14 +1,16 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/text';
 import { Tag } from '@/components/ui';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import type { MeetEvent } from '@/services/events';
+import { makeStyles } from '@/theme';
 
 /** When line: accent only when the meet is today (the 10% accent rule). */
 export function WhenLine({ event }: { event: MeetEvent }) {
+  const styles = useStyles();
   return (
     <View style={styles.when}>
       {event.isToday && <View style={styles.liveDot} />}
@@ -21,6 +23,7 @@ export function WhenLine({ event }: { event: MeetEvent }) {
 
 /** Compact list row: thumbnail, when, title, place. Nothing else. */
 export function EventRow({ event, dimmed }: { event: MeetEvent; dimmed?: boolean }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -42,6 +45,7 @@ export function EventRow({ event, dimmed }: { event: MeetEvent; dimmed?: boolean
 
 /** Tall photo tile for horizontal carousels. */
 export function EventTile({ event, width = 240 }: { event: MeetEvent; width?: number }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -55,7 +59,7 @@ export function EventTile({ event, width = 240 }: { event: MeetEvent; width?: nu
           transition={150}
         />
         <View style={styles.tileTag}>
-          <Tag label={event.day} />
+          <Tag label={event.day} overlay />
         </View>
       </View>
       <Text variant="heading" numberOfLines={1} style={styles.tileTitle}>
@@ -73,6 +77,7 @@ export function EventTile({ event, width = 240 }: { event: MeetEvent; width?: nu
  * With an odd count the first tile spans the full width, so there is never a gap.
  */
 export function EventGrid({ events }: { events: MeetEvent[] }) {
+  const styles = useStyles();
   const wide = events.length % 2 === 1 ? events[0] : undefined;
   const pairs: MeetEvent[][] = [];
   for (let i = wide ? 1 : 0; i < events.length; i += 2) pairs.push(events.slice(i, i + 2));
@@ -92,6 +97,7 @@ export function EventGrid({ events }: { events: MeetEvent[] }) {
 }
 
 function GridTile({ event, wide }: { event: MeetEvent; wide?: boolean }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -105,7 +111,7 @@ function GridTile({ event, wide }: { event: MeetEvent; wide?: boolean }) {
           transition={150}
         />
         <View style={styles.tileTag}>
-          <Tag label={event.day} tone={event.isToday ? 'accent' : 'default'} />
+          <Tag label={event.day} tone={event.isToday ? 'accent' : 'default'} overlay />
         </View>
       </View>
       <Text variant="heading" numberOfLines={1} style={styles.gridTitle}>
@@ -131,7 +137,7 @@ export function placeLine(event: MeetEvent) {
   return event.distanceKm === undefined ? event.area : `${event.area} · ${formatKm(event.distanceKm)}`;
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -144,15 +150,15 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.raised,
+    backgroundColor: c.raised,
   },
   rowBody: { flex: 1, gap: 2 },
   when: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.accent },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.accentText },
   tileImage: {
     height: 150,
     borderRadius: Radius.xl,
-    backgroundColor: Colors.raised,
+    backgroundColor: c.raised,
   },
   tileTag: { position: 'absolute', top: Spacing.md, left: Spacing.md },
   tileTitle: { marginTop: Spacing.md },
@@ -162,7 +168,7 @@ const styles = StyleSheet.create({
   gridImage: {
     width: '100%',
     borderRadius: Radius.xl,
-    backgroundColor: Colors.raised,
+    backgroundColor: c.raised,
   },
   gridTitle: { marginTop: Spacing.sm },
-});
+}));

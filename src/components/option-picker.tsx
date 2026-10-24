@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Modal, Pressable, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
 import { IconButton } from '@/components/ui';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { makeStyles, useTheme } from '@/theme';
 
 type Props<T extends string | number> = {
   label: string;
@@ -34,6 +35,8 @@ export function OptionPicker<T extends string | number>({
   searchable,
   disabled,
 }: Props<T>) {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -59,10 +62,10 @@ export function OptionPicker<T extends string | number>({
         <Text
           variant="heading"
           numberOfLines={1}
-          style={[styles.value, { color: value == null || disabled ? Colors.textDisabled : Colors.text }]}>
+          style={[styles.value, { color: value == null || disabled ? c.textDisabled : c.text }]}>
           {value ?? placeholder}
         </Text>
-        <Icon name="chevron" size={18} color={disabled ? Colors.textDisabled : Colors.textSecondary} />
+        <Icon name="chevron" size={18} color={disabled ? c.textDisabled : c.textSecondary} />
       </Pressable>
 
       <Modal visible={open} animationType="slide" onRequestClose={close}>
@@ -77,8 +80,8 @@ export function OptionPicker<T extends string | number>({
               value={query}
               onChangeText={setQuery}
               placeholder="Buscar"
-              placeholderTextColor={Colors.textDisabled}
-              selectionColor={Colors.accent}
+              placeholderTextColor={c.textDisabled}
+              selectionColor={c.accentText}
               autoCorrect={false}
               autoFocus
               style={[styles.input, styles.search]}
@@ -105,10 +108,10 @@ export function OptionPicker<T extends string | number>({
                     close();
                   }}
                   style={({ pressed }) => [styles.option, pressed && styles.pressed]}>
-                  <Text variant="heading" style={{ flex: 1, color: selected ? Colors.accent : Colors.text }}>
+                  <Text variant="heading" style={{ flex: 1, color: selected ? c.accentText : c.text }}>
                     {item}
                   </Text>
-                  {selected && <Icon name="check" size={18} color={Colors.accent} />}
+                  {selected && <Icon name="check" size={18} color={c.accentText} />}
                 </Pressable>
               );
             }}
@@ -119,36 +122,36 @@ export function OptionPicker<T extends string | number>({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   field: { gap: Spacing.sm },
   input: {
     minHeight: 56,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  inputDisabled: { backgroundColor: Colors.canvas },
+  inputDisabled: { backgroundColor: c.canvas },
   value: { flex: 1, fontSize: 17 },
   pressed: { opacity: 0.75 },
-  sheet: { flex: 1, backgroundColor: Colors.canvas, paddingHorizontal: Spacing.lg },
+  sheet: { flex: 1, backgroundColor: c.canvas, paddingHorizontal: Spacing.lg },
   sheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: Spacing.lg,
   },
-  search: { color: Colors.text, fontFamily: Fonts.medium, fontSize: 17, marginBottom: Spacing.sm },
+  search: { color: c.text, fontFamily: Fonts.medium, fontSize: 17, marginBottom: Spacing.sm },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 56,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   empty: { textAlign: 'center', marginTop: Spacing.xl },
-});
+}));

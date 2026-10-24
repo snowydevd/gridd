@@ -1,21 +1,24 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EventRow } from '@/components/event-card';
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Button } from '@/components/ui';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { toCardEvent, useMyEvents, type MeetEvent } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
 import { useSavedEvents } from '@/services/saved';
 import { useCurrentUser } from '@/services/user';
+import { makeStyles, useTheme } from '@/theme';
 
 type Segment = 'saved' | 'mine';
 
 export default function SavedScreen() {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const saved = useSavedEvents();
   const mine = useMyEvents();
@@ -56,7 +59,7 @@ export default function SavedScreen() {
       )}
 
       {isLoading ? (
-        <ActivityIndicator color={Colors.accent} style={styles.loading} />
+        <ActivityIndicator color={c.accentText} style={styles.loading} />
       ) : isEmpty ? (
         <EmptyState segment={segment} />
       ) : (
@@ -90,6 +93,7 @@ function splitByDate(list: MeetEvent[]): Section[] {
 }
 
 function SegmentButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="tab"
@@ -104,13 +108,15 @@ function SegmentButton({ label, active, onPress }: { label: string; active: bool
 }
 
 function EmptyState({ segment }: { segment: Segment }) {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const mine = segment === 'mine';
   const { isPublisher, isGuest } = useCurrentUser();
   const guest = !mine && isGuest;
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIcon}>
-        <Icon name={mine ? 'calendar' : 'bookmark'} size={26} color={Colors.textSecondary} />
+        <Icon name={mine ? 'calendar' : 'bookmark'} size={26} color={c.textSecondary} />
       </View>
       <Text variant="heading">{mine ? 'Todavía no publicaste nada' : 'Nada guardado'}</Text>
       <Text tone="secondary" style={styles.emptyText}>
@@ -130,17 +136,17 @@ function EmptyState({ segment }: { segment: Segment }) {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxl },
   title: { marginBottom: Spacing.xl },
   segmented: {
     flexDirection: 'row',
     padding: 4,
     borderRadius: Radius.full,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   segment: {
     flex: 1,
@@ -149,7 +155,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  segmentActive: { backgroundColor: Colors.raised },
+  segmentActive: { backgroundColor: c.raised },
   section: { marginTop: Spacing.xl },
   sectionLabel: { marginBottom: Spacing.xs },
   loading: { paddingTop: 80 },
@@ -158,11 +164,11 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
   },
   emptyText: { textAlign: 'center' },
   emptyCta: { marginTop: Spacing.lg, alignSelf: 'stretch' },
-});
+}));

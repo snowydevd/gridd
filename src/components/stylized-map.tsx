@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Text } from '@/components/text';
-import { Colors } from '@/constants/theme';
+// Web queda fuera del tema claro: usa siempre la paleta oscura.
+import { darkPalette as Colors } from '@/theme';
 
 export type MapPin = {
   id: string;

@@ -1,19 +1,22 @@
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { showDialog } from '@/components/dialog';
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Button, Card, IconButton } from '@/components/ui';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { carErrorMessage } from '@/services/cars';
 import { REQUEST_MAX, REQUEST_MIN, usePublisherRequest } from '@/services/publisher-requests';
 import { useCurrentUser } from '@/services/user';
+import { makeStyles, useTheme } from '@/theme';
 
 // Un usuario común pide permiso para publicar eventos; un admin lo aprueba desde el dashboard.
 export default function OrganizerRequestScreen() {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const { isLoading, isGuest, isPublisher } = useCurrentUser();
   const { request, status, submit } = usePublisherRequest();
@@ -49,12 +52,12 @@ export default function OrganizerRequestScreen() {
 
       {isLoading || request === undefined ? (
         <View style={[styles.screen, styles.centered]}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={c.accentText} />
         </View>
       ) : status === 'pending' ? (
         <View style={styles.content}>
           <Card style={styles.status}>
-            <Icon name="clock" size={24} color={Colors.accent} />
+            <Icon name="clock" size={24} color={c.accentText} />
             <View style={{ flex: 1, gap: Spacing.xs }}>
               <Text variant="heading">Tu solicitud está en revisión</Text>
               <Text variant="label" tone="secondary">
@@ -68,7 +71,7 @@ export default function OrganizerRequestScreen() {
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
             {status === 'rejected' && (
               <Card style={styles.status}>
-                <Icon name="close" size={24} color={Colors.error} />
+                <Icon name="close" size={24} color={c.error} />
                 <View style={{ flex: 1, gap: Spacing.xs }}>
                   <Text variant="heading">No aprobamos tu última solicitud</Text>
                   <Text variant="label" tone="secondary">
@@ -86,7 +89,7 @@ export default function OrganizerRequestScreen() {
                 value={message}
                 onChangeText={setMessage}
                 placeholder="Ej: Organizo la junada de los jueves en Pocitos, @juntadapocitos"
-                placeholderTextColor={Colors.textDisabled}
+                placeholderTextColor={c.textDisabled}
                 style={styles.textarea}
                 multiline
                 maxLength={REQUEST_MAX}
@@ -110,8 +113,8 @@ export default function OrganizerRequestScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   centered: { alignItems: 'center', justifyContent: 'center' },
   header: {
     paddingHorizontal: Spacing.lg,
@@ -127,14 +130,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
-    color: Colors.text,
+    borderColor: c.border,
+    color: c.text,
     fontFamily: Fonts.body,
     fontSize: 15,
     textAlignVertical: 'top',
   },
   counter: { alignSelf: 'flex-end' },
   footer: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
-});
+}));

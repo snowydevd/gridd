@@ -1,12 +1,13 @@
 import { Image, type ImageSource } from 'expo-image';
 import { router } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View, type ImageStyle, type StyleProp } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View, type ImageStyle, type StyleProp } from 'react-native';
 
 import { Text } from '@/components/text';
 import { SectionHeader } from '@/components/ui';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useMyCars } from '@/services/cars';
 import { useAvatarUpload, useCurrentUser, useInterests, useUserMeets } from '@/services/user';
+import { makeStyles, useTheme } from '@/theme';
 
 type Step = {
   key: string;
@@ -26,6 +27,7 @@ type Step = {
  * muestran y, con todo completo, la sección desaparece. Mientras cargan los datos no se muestra nada.
  */
 export function AccountCards() {
+  const styles = useStyles();
   const { user, isLoading, isGuest } = useCurrentUser();
   const { cars, isLoading: carsLoading } = useMyCars();
   const { hasJoinedAny, isLoading: meetsLoading } = useUserMeets();
@@ -108,6 +110,7 @@ export function AccountCards() {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={styles.section}>
       <SectionHeader title={title} />
@@ -123,6 +126,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function StepCard({ step }: { step: Step }) {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.card}>
       {/* Primero el dibujo: si se toca con el texto, el botón queda encima. */}
@@ -142,7 +147,7 @@ function StepCard({ step }: { step: Step }) {
           onPress={step.onPress}
           style={({ pressed }) => [styles.action, pressed && { opacity: 0.8 }]}>
           {step.busy ? (
-            <ActivityIndicator size="small" color={Colors.text} />
+            <ActivityIndicator size="small" color={c.text} />
           ) : (
             <Text variant="label">{step.action}</Text>
           )}
@@ -152,7 +157,7 @@ function StepCard({ step }: { step: Step }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   section: { marginTop: Spacing.xxl },
   bleed: { marginHorizontal: -Spacing.lg },
   carousel: { paddingHorizontal: Spacing.lg, gap: Spacing.md },
@@ -162,7 +167,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: Spacing.lg,
     borderRadius: Radius.xl,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     // El dibujo sale del borde y la tarjeta lo recorta.
     overflow: 'hidden',
   },
@@ -176,11 +181,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     marginTop: Spacing.xs,
     borderRadius: Radius.full,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   art: { position: 'absolute', right: -36, bottom: -12, width: 176, height: 116 },
   // El auto mira a la izquierda: se ve el frente entero y la tarjeta corta la cola y el piso.
   carArt: { right: -40, bottom: -6, width: 176, height: 99 },
-});
+}));

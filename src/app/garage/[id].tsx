@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   ScrollView,
-  StyleSheet,
   Switch,
   TextInput,
   View,
@@ -15,7 +14,7 @@ import { showDialog } from '@/components/dialog';
 import { OptionPicker } from '@/components/option-picker';
 import { Text } from '@/components/text';
 import { Button, Card, IconButton } from '@/components/ui';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
 import type { Id } from '@/lib/convex';
 import { withTimeout } from '@/lib/with-timeout';
 import {
@@ -27,12 +26,15 @@ import {
   VEHICLE_CATALOG,
   type Car,
 } from '@/services/cars';
+import { makeStyles, useTheme } from '@/theme';
 
 const MAKES = VEHICLE_CATALOG.map((m) => m.name);
 const CURRENT_YEAR = new Date().getFullYear();
 
 /** `/garage/new` agrega un auto; `/garage/<id>` edita uno existente. */
 export default function CarFormScreen() {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const isNew = id === 'new';
   const { car, isLoading } = useCar(isNew ? undefined : (id as Id<'cars'>));
@@ -40,7 +42,7 @@ export default function CarFormScreen() {
   if (!isNew && isLoading) {
     return (
       <View style={[styles.screen, styles.centered]}>
-        <ActivityIndicator color={Colors.accent} />
+        <ActivityIndicator color={c.accentText} />
       </View>
     );
   }
@@ -57,6 +59,8 @@ export default function CarFormScreen() {
 }
 
 function CarForm({ car }: { car: Car | null }) {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const { addCar, updateCar, removeCar } = useCarActions();
   const [make, setMake] = useState<string | null>(car?.make ?? null);
@@ -164,8 +168,8 @@ function CarForm({ car }: { car: Car | null }) {
               value={version}
               onChangeText={setVersion}
               placeholder="Ej: G5 1.6, GTI, Type R"
-              placeholderTextColor={Colors.textDisabled}
-              selectionColor={Colors.accent}
+              placeholderTextColor={c.textDisabled}
+              selectionColor={c.accentText}
               maxLength={40}
               style={styles.input}
             />
@@ -181,8 +185,8 @@ function CarForm({ car }: { car: Car | null }) {
             <Switch
               value={isModified}
               onValueChange={setIsModified}
-              trackColor={{ true: Colors.accent, false: Colors.raised }}
-              thumbColor={isModified ? Colors.onAccent : Colors.textSecondary}
+              trackColor={{ true: c.accentText, false: c.raised }}
+              thumbColor={isModified ? c.onAccent : c.textSecondary}
             />
           </Card>
         </View>
@@ -214,8 +218,8 @@ function CarForm({ car }: { car: Car | null }) {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   centered: { alignItems: 'center', justifyContent: 'center', padding: Spacing.xl },
   header: {
     paddingHorizontal: Spacing.lg,
@@ -231,14 +235,14 @@ const styles = StyleSheet.create({
     minHeight: 56,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
-    color: Colors.text,
+    borderColor: c.border,
+    color: c.text,
     fontFamily: Fonts.medium,
     fontSize: 17,
   },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, padding: Spacing.lg },
   error: { marginTop: Spacing.lg },
   submit: { marginTop: Spacing.xl },
-});
+}));
