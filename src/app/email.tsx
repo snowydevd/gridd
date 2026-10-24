@@ -1,15 +1,15 @@
 import { Text } from '@/components/text';
 import { Button, IconButton } from '@/components/ui';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { authErrorMessage, validateCredentials, type PasswordFlow } from '@/lib/auth-errors';
 import { wait, withTimeout } from '@/lib/with-timeout';
+import { makeStyles, useTheme } from '@/theme';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Pressable,
   ScrollView,
-  StyleSheet,
   TextInput,
   View,
   type TextInputProps,
@@ -45,12 +45,15 @@ const COPY: Record<Mode, { title: string; subtitle: string; submit: string; busy
 };
 
 export default function EmailScreen() {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const { signIn } = useAuthActions();
-  const params = useLocalSearchParams<{ mode?: string }>();
-  const [mode, setMode] = useState<Mode>(params.mode === 'signUp' ? 'signUp' : 'signIn');
+  const params = useLocalSearchParams<{ mode?: string; email?: string }>();
+  // Desde Cuenta: el usuario ya entró, así que es el flujo de recuperar con su email fijo.
+  const changing = params.mode === 'change';
+  const [mode, setMode] = useState<Mode>(changing ? 'reset' : params.mode === 'signUp' ? 'signUp' : 'signIn');
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(changing ? (params.email ?? '') : '');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -72,8 +75,8 @@ export default function EmailScreen() {
     if (error) setError(null);
   };
 
-  // Cierra email + login y vuelve a la app.
-  const done = () => (router.canDismiss() ? router.dismissAll() : router.replace('/'));
+  // Cierra email + login y vuelve a la app; al cambiar la contraseña vuelve a Cuenta.
+  const done = () => (changing ? router.back() : router.canDismiss() ? router.dismissAll() : router.replace('/'));
 
   const submit = async () => {
     if (busy) return;
@@ -122,7 +125,7 @@ export default function EmailScreen() {
     (mode !== 'signUp' || name.trim().length > 0) &&
     (mode !== 'reset-verification' || code.trim().length > 0);
 
-  const copy = COPY[mode];
+  const copy = changing && mode === 'reset' ? { ...COPY.reset, title: 'Cambiar contraseña' } : COPY[mode];
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior="padding">
@@ -155,7 +158,7 @@ export default function EmailScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
-            editable={mode !== 'reset-verification'}
+            editable={!changing && mode !== 'reset-verification'}
           />
           {mode === 'reset-verification' && (
             <Field
@@ -215,7 +218,7 @@ export default function EmailScreen() {
         )}
         {mode === 'signUp' && <Link label="¿Ya tenés cuenta? Entrá" onPress={() => switchMode('signIn')} />}
         {mode === 'reset-verification' && <Link label="Reenviar código" onPress={() => switchMode('reset')} />}
-        {(mode === 'reset' || mode === 'reset-verification') && (
+        {!changing && (mode === 'reset' || mode === 'reset-verification') && (
           <Link label="Volver a entrar" onPress={() => switchMode('signIn')} />
         )}
       </ScrollView>
@@ -224,15 +227,17 @@ export default function EmailScreen() {
 }
 
 function Field({ label, ...input }: TextInputProps & { label: string }) {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.field}>
       <Text variant="overline" tone="secondary">
         {label}
       </Text>
       <TextInput
-        placeholderTextColor={Colors.textDisabled}
+        placeholderTextColor={c.textDisabled}
         style={[styles.input, input.editable === false && styles.inputDisabled]}
-        selectionColor={Colors.accent}
+        selectionColor={c.accentText}
         {...input}
       />
     </View>
@@ -240,6 +245,7 @@ function Field({ label, ...input }: TextInputProps & { label: string }) {
 }
 
 function Link({ label, onPress }: { label: string; onPress: () => void }) {
+  const styles = useStyles();
   return (
     <Pressable onPress={onPress} hitSlop={8} style={styles.link}>
       <Text variant="label" tone="secondary">
@@ -249,8 +255,8 @@ function Link({ label, onPress }: { label: string; onPress: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   header: { paddingHorizontal: Spacing.lg },
   body: { padding: Spacing.lg, paddingTop: Spacing.xl },
   subtitle: { marginTop: Spacing.sm },
@@ -260,15 +266,15 @@ const styles = StyleSheet.create({
     minHeight: 56,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
-    color: Colors.text,
+    borderColor: c.border,
+    color: c.text,
     fontFamily: Fonts.medium,
     fontSize: 17,
   },
-  inputDisabled: { color: Colors.textSecondary },
+  inputDisabled: { color: c.textSecondary },
   error: { marginTop: Spacing.lg },
   submit: { marginTop: Spacing.xl },
   link: { alignItems: 'center', paddingVertical: Spacing.md },
-});
+}));

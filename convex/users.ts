@@ -12,6 +12,11 @@ export const me = query({
   handler: async (ctx) => {
     const user = await currentUser(ctx);
     if (!user) return null;
+    // Quien entró sólo con Google o Apple no tiene contraseña que cambiar.
+    const passwordAccount = await ctx.db
+      .query("authAccounts")
+      .withIndex("userIdAndProvider", (q) => q.eq("userId", user._id).eq("provider", "password"))
+      .first();
     return {
       _id: user._id,
       name: user.name ?? null,
@@ -19,6 +24,7 @@ export const me = query({
       image: await avatarUrl(ctx, user),
       // Foto subida por el usuario (no la del login social): se puede quitar.
       hasAvatar: !!user.avatarId,
+      hasPassword: !!passwordAccount,
       role: roleOf(user),
       searchRadius: user.searchRadius ?? DEFAULT_SEARCH_RADIUS,
       interests: user.interests ?? [],

@@ -3,7 +3,8 @@ import { useCallback, useImperativeHandle, useRef, useState, type Ref } from 're
 import { Image, Platform, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import MapView, { Marker, type EdgePadding, type LatLng, type Region } from 'react-native-maps';
 
-import { darkMapStyle } from '@/constants/map-style';
+import { darkMapStyle, lightMapStyle } from '@/constants/map-style';
+import { useTheme, type Scheme } from '@/theme';
 
 export type EventMapPin = {
   id: string;
@@ -47,6 +48,7 @@ export function EventMap({
   onPress,
   style,
 }: Props) {
+  const { scheme } = useTheme();
   const map = useRef<MapView>(null);
   const region = useRef(initialRegion);
 
@@ -78,9 +80,9 @@ export function EventMap({
       initialRegion={initialRegion}
       onRegionChangeComplete={(r) => (region.current = r)}
       mapPadding={padding}
-      // Android: Google Maps con estilo propio. iOS: Apple Maps en modo oscuro.
-      customMapStyle={Platform.OS === 'android' ? darkMapStyle : undefined}
-      userInterfaceStyle="dark"
+      // Android: Google Maps con estilo propio. iOS: Apple Maps en el modo del tema.
+      customMapStyle={Platform.OS === 'android' ? (scheme === 'dark' ? darkMapStyle : lightMapStyle) : undefined}
+      userInterfaceStyle={scheme}
       showsUserLocation={showsUserLocation}
       showsMyLocationButton={false}
       showsPointsOfInterests={false}
@@ -95,10 +97,11 @@ export function EventMap({
         const selected = pin.id === selectedId;
         return (
           <PinMarker
-            // Remontar al cambiar la selección (el pin pasa de chico a grande) y al volver a la pantalla.
-            key={`${pin.id}-${selected}-${generation}`}
+            // Remontar al cambiar la selección (el pin pasa de chico a grande), el tema o al volver a la pantalla.
+            key={`${pin.id}-${selected}-${generation}-${scheme}`}
             pin={pin}
             selected={selected}
+            scheme={scheme}
             onPress={() => onSelect?.(pin.id)}
           />
         );
@@ -107,12 +110,19 @@ export function EventMap({
   );
 }
 
-const PIN = {
-  small: require('@/assets/brand/gridd-pin-map-small.png'),
-  large: require('@/assets/brand/gridd-pin-map-large.png'),
+// En el mapa claro el lima no se distingue del fondo: esos pines llevan contorno oscuro.
+const PINS = {
+  dark: {
+    small: require('@/assets/brand/gridd-pin-map-small.png'),
+    large: require('@/assets/brand/gridd-pin-map-large.png'),
+  },
+  light: {
+    small: require('@/assets/brand/gridd-pin-map-small-light.png'),
+    large: require('@/assets/brand/gridd-pin-map-large-light.png'),
+  },
 };
 
-function PinMarker({ pin, selected, onPress }: { pin: EventMapPin; selected: boolean; onPress: () => void }) {
+function PinMarker({ pin, selected, scheme, onPress }: { pin: EventMapPin; selected: boolean; scheme: Scheme; onPress: () => void }) {
   // El mapa saca una "foto" del pin; hay que dejarla actualizarse hasta que cargue la imagen,
   // si no en Android puede quedar vacío. Después se congela para no redibujar en cada frame.
   const [loaded, setLoaded] = useState(false);
@@ -130,7 +140,7 @@ function PinMarker({ pin, selected, onPress }: { pin: EventMapPin; selected: boo
         onPress();
       }}>
       <Image
-        source={selected ? PIN.large : PIN.small}
+        source={selected ? PINS[scheme].large : PINS[scheme].small}
         style={selected ? styles.pinLarge : styles.pinSmall}
         onLoad={() => setLoaded(true)}
         fadeDuration={0}

@@ -11,7 +11,7 @@ import { EventMap } from '@/components/event-map';
 import { Icon, type IconName } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Button, Fade, IconButton, Tag } from '@/components/ui';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { eventUrl } from '@/lib/links';
 import { useAttendanceToggle } from '@/services/attendance';
 import { addToCalendar } from '@/services/calendar';
@@ -21,8 +21,11 @@ import { toCardEvent, useCancelEvent, useEventBySlug } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
 import { useSaveToggle } from '@/services/saved';
 import { useCurrentUser } from '@/services/user';
+import { makeStyles, useTheme } from '@/theme';
 
 export default function EventDetailScreen() {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   // Los eventos de Convex llegan por slug.
   const remote = useEventBySlug(id);
@@ -41,7 +44,7 @@ export default function EventDetailScreen() {
   if (remote === undefined && !event) {
     return (
       <View style={[styles.screen, styles.missing]}>
-        <ActivityIndicator color={Colors.accent} />
+        <ActivityIndicator color={c.accentText} />
       </View>
     );
   }
@@ -195,10 +198,10 @@ export default function EventDetailScreen() {
                 <Text variant="heading" numberOfLines={1}>
                   {event.organizer.name}
                 </Text>
-                {event.organizer.verified && <Icon name="verified" size={16} color={Colors.success} />}
+                {event.organizer.verified && <Icon name="verified" size={16} color={c.success} />}
               </View>
             </View>
-            {event.organizer.id && <Icon name="chevron" size={18} color={Colors.textSecondary} />}
+            {event.organizer.id && <Icon name="chevron" size={18} color={c.textSecondary} />}
           </Pressable>
         </View>
       </ScrollView>
@@ -282,9 +285,11 @@ export default function EventDetailScreen() {
 const MAP_DELTA = 0.012;
 
 function Fact({ icon, title, subtitle }: { icon: IconName; title: string; subtitle: string }) {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.fact}>
-      <Icon name={icon} size={20} color={Colors.textSecondary} />
+      <Icon name={icon} size={20} color={c.textSecondary} />
       <View style={{ flex: 1 }}>
         <Text variant="heading">{title}</Text>
         <Text variant="label" tone="secondary">
@@ -295,28 +300,28 @@ function Fact({ icon, title, subtitle }: { icon: IconName; title: string; subtit
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   missing: { alignItems: 'center', justifyContent: 'center', gap: Spacing.lg },
-  hero: { height: 340, backgroundColor: Colors.surface },
+  hero: { height: 340, backgroundColor: c.surface },
   body: { paddingHorizontal: Spacing.lg, marginTop: -Spacing.xxl, gap: Spacing.md },
   tags: { flexDirection: 'row', gap: Spacing.sm },
   facts: {
     marginTop: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: Radius.xl,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     paddingHorizontal: Spacing.lg,
   },
   fact: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.lg },
-  factDivider: { height: 1, backgroundColor: Colors.border },
+  factDivider: { height: 1, backgroundColor: c.border },
   map: {
     height: 180,
     overflow: 'hidden',
     borderRadius: Radius.xl,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   description: { marginTop: Spacing.sm },
   organizer: {
@@ -326,13 +331,13 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingTop: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
   orgBadge: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.raised,
+    backgroundColor: c.raised,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -354,8 +359,8 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
-    backgroundColor: Colors.canvas,
+    backgroundColor: c.canvas,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
-});
+}));

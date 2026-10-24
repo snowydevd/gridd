@@ -1,12 +1,13 @@
 import type { BottomTabBarProps } from 'expo-router/tabs';
 import { router } from 'expo-router';
 import { Fragment } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@/components/icon';
-import { Colors, TabBarHeight } from '@/constants/theme';
+import { TabBarHeight } from '@/constants/theme';
 import { useCurrentUser } from '@/services/user';
+import { makeStyles, useTheme } from '@/theme';
 
 // Sólo íconos; `label` queda para los lectores de pantalla.
 const tabs: Record<string, { label: string; icon: IconName }> = {
@@ -17,6 +18,8 @@ const tabs: Record<string, { label: string; icon: IconName }> = {
 };
 
 export function TabBar({ state, navigation }: BottomTabBarProps) {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const { isPublisher } = useCurrentUser();
 
@@ -42,7 +45,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
               accessibilityLabel={tab.label}
               onPress={onPress}
               style={styles.tab}>
-              <Icon name={tab.icon} size={22} color={focused ? Colors.text : Colors.textSecondary} />
+              <Icon name={tab.icon} size={22} color={focused ? c.text : c.textSecondary} />
               {focused && <View style={styles.indicator} />}
             </Pressable>
           </Fragment>
@@ -53,6 +56,8 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 }
 
 function PublishButton() {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.tab}>
       <Pressable
@@ -60,18 +65,18 @@ function PublishButton() {
         accessibilityLabel="Publicar evento"
         onPress={() => router.push('/publish')}
         style={({ pressed }) => [styles.fab, pressed && { transform: [{ scale: 0.94 }] }]}>
-        <Icon name="plus" size={26} color={Colors.onAccent} />
+        <Icon name="plus" size={26} color={c.onAccent} />
       </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   bar: {
     flexDirection: 'row',
-    backgroundColor: Colors.canvas,
+    backgroundColor: c.canvas,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
   tab: {
     flex: 1,
@@ -84,14 +89,14 @@ const styles = StyleSheet.create({
     width: 24,
     height: 2,
     borderRadius: 1,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accentText,
   },
   fab: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

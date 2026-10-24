@@ -4,20 +4,7 @@
  * reserved for the primary action, active states and "hoy" badges.
  */
 
-export const Colors = {
-  canvas: '#0B0B0C',
-  surface: '#17181B',
-  raised: '#1F2024',
-  border: '#2A2C30',
-  text: '#F2F3F5',
-  textSecondary: '#8A8F98',
-  textDisabled: '#4A4E55',
-  accent: '#E2FF3B',
-  onAccent: '#0B0B0C',
-  success: '#3DDC84',
-  warning: '#FFB020',
-  error: '#FF4D4F',
-} as const;
+// Los colores viven en `@/theme` (paletas clara y oscura, `useTheme`, `makeStyles`).
 
 export const Fonts = {
   display: 'Chivo_800ExtraBold',

@@ -1,18 +1,21 @@
 import { Image } from 'expo-image';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DEFAULT_AVATAR } from '@/components/attendees-preview';
 import { Text } from '@/components/text';
 import { IconButton } from '@/components/ui';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import type { Id } from '@/lib/convex';
 import { attendeeCar, useAttendees } from '@/services/attendance';
 import { useCurrentUser } from '@/services/user';
+import { makeStyles, useTheme } from '@/theme';
 
 // Lista completa de quiénes van a un evento. Sólo con sesión (el backend también lo exige).
 export default function AttendeesScreen() {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { isGuest } = useCurrentUser();
@@ -29,7 +32,7 @@ export default function AttendeesScreen() {
       </View>
 
       {attendees === undefined ? (
-        <ActivityIndicator color={Colors.accent} style={styles.loading} />
+        <ActivityIndicator color={c.accentText} style={styles.loading} />
       ) : (
         <FlatList
           data={attendees}
@@ -65,8 +68,8 @@ export default function AttendeesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   header: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
@@ -83,7 +86,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   avatar: { width: 44, height: 44, borderRadius: 22 },
-});
+}));

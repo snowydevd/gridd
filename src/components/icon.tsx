@@ -1,7 +1,7 @@
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { Platform, useWindowDimensions, type ColorValue, type StyleProp, type ViewStyle } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { useTheme } from '@/theme';
 
 type SymbolName = Exclude<SymbolViewProps['name'], string>;
 
@@ -48,6 +48,7 @@ const icons = {
   settings: {ios: 'gearshape', android: 'settings', web: 'settings'},
   more: { ios: 'ellipsis', android: 'more_horiz', web: 'more_horiz' },
   report: { ios: 'exclamationmark.bubble', android: 'report', web: 'report' },
+  appearance: { ios: 'circle.lefthalf.filled', android: 'contrast', web: 'contrast' },
 } satisfies Record<string, SymbolName>;
 
 export type IconName = keyof typeof icons;
@@ -59,7 +60,9 @@ type IconProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-export function Icon({ name, size = 22, color = Colors.text, style }: IconProps) {
+export function Icon({ name, size = 22, color, style }: IconProps) {
+  const { colors } = useTheme();
+  color ??= colors.text;
   // En Android SymbolView dibuja el glyph con un <Text> que escala con la fuente del sistema, pero su caja
   // no: con la fuente agrandada (común en Samsung) el ícono se sale de la caja y queda corrido hacia abajo
   // a la derecha. Se le pasa un tamaño ya dividido por la escala y se fija la caja al tamaño real.

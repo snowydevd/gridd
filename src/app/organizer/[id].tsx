@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Share, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { showDialog } from '@/components/dialog';
@@ -8,16 +8,19 @@ import { EventRow } from '@/components/event-card';
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Button, IconButton } from '@/components/ui';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { carErrorMessage } from '@/services/cars';
 import { toCardEvent } from '@/services/events';
 import { useLastKnownLocation } from '@/services/location';
 import { useFollowToggle, useOrganizer } from '@/services/organizers';
 import { useCurrentUser } from '@/services/user';
+import { makeStyles, useTheme } from '@/theme';
 
 const DEFAULT_AVATAR = require('@/assets/images/meets/avatar.jpg');
 
 export default function OrganizerScreen() {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const profile = useOrganizer(id);
@@ -70,7 +73,7 @@ export default function OrganizerScreen() {
     return (
       <View style={styles.screen}>
         {header}
-        <ActivityIndicator color={Colors.accent} style={styles.loading} />
+        <ActivityIndicator color={c.accentText} style={styles.loading} />
       </View>
     );
   }
@@ -115,7 +118,7 @@ export default function OrganizerScreen() {
           <Image source={profile.image ? { uri: profile.image } : DEFAULT_AVATAR} style={styles.avatar} contentFit="cover" />
           <View style={styles.nameRow}>
             <Text variant="title">{profile.name ?? 'Organizador'}</Text>
-            {profile.verified && <Icon name="verified" size={18} color={Colors.accent} />}
+            {profile.verified && <Icon name="verified" size={18} color={c.accentText} />}
           </View>
         </View>
 
@@ -163,8 +166,8 @@ export default function OrganizerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   header: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.sm,
@@ -175,11 +178,11 @@ const styles = StyleSheet.create({
   missing: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { paddingHorizontal: Spacing.lg, gap: Spacing.xl },
   identity: { alignItems: 'center', gap: Spacing.md },
-  avatar: { width: 96, height: 96, borderRadius: 48, borderWidth: 2, borderColor: Colors.border },
+  avatar: { width: 96, height: 96, borderRadius: 48, borderWidth: 2, borderColor: c.border },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   stats: { flexDirection: 'row' },
   stat: { flex: 1, alignItems: 'center', gap: 2 },
-  statDivider: { borderLeftWidth: 1, borderLeftColor: Colors.border },
+  statDivider: { borderLeftWidth: 1, borderLeftColor: c.border },
   empty: { textAlign: 'center' },
   section: { gap: Spacing.md },
-});
+}));

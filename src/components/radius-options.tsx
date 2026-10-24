@@ -1,9 +1,10 @@
-import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { SEARCH_RADII, searchRadiusLabel, type SearchRadius } from '@/services/search-radius';
+import { makeStyles, useTheme } from '@/theme';
 
 type Props = {
   value: SearchRadius;
@@ -14,6 +15,8 @@ type Props = {
 
 /** Lista de rangos de "Cerca tuyo", con el elegido marcado. La usan el perfil e Inicio. */
 export function RadiusOptions({ value, onSelect, optionStyle }: Props) {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   return SEARCH_RADII.map((option, i) => {
     const selected = option === value;
     const last = i === SEARCH_RADII.length - 1;
@@ -24,7 +27,7 @@ export function RadiusOptions({ value, onSelect, optionStyle }: Props) {
         accessibilityState={{ selected }}
         onPress={() => onSelect(option)}
         style={({ pressed }) => [styles.option, !last && styles.border, optionStyle, pressed && { opacity: 0.7 }]}>
-        <Text variant="label" style={{ flex: 1, color: selected ? Colors.accent : Colors.text }}>
+        <Text variant="label" style={{ flex: 1, color: selected ? c.accentText : c.text }}>
           {searchRadiusLabel(option)}
         </Text>
         {option === 'all' && (
@@ -32,13 +35,13 @@ export function RadiusOptions({ value, onSelect, optionStyle }: Props) {
             Todo el país
           </Text>
         )}
-        {selected && <Icon name="check" size={18} color={Colors.accent} />}
+        {selected && <Icon name="check" size={18} color={c.accentText} />}
       </Pressable>
     );
   });
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   option: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, minHeight: 48 },
-  border: { borderBottomWidth: 1, borderBottomColor: Colors.border },
-});
+  border: { borderBottomWidth: 1, borderBottomColor: c.border },
+}));

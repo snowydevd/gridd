@@ -1,4 +1,6 @@
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
+// Web queda fuera del tema claro: usa siempre la paleta oscura.
+import { darkPalette as Colors } from '@/theme';
 
 import type { DateTimeFieldProps } from './date-time-field';
 

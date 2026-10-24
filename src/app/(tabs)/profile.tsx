@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { showDialog } from '@/components/dialog';
@@ -9,14 +9,17 @@ import { Icon, type IconName } from '@/components/icon';
 import { RadiusOptions } from '@/components/radius-options';
 import { Text } from '@/components/text';
 import { Button, Card } from '@/components/ui';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { carTitle, useMyCars } from '@/services/cars';
 import { REQUEST_STATUS_LABELS, usePublisherRequest } from '@/services/publisher-requests';
 import { useSavedEvents } from '@/services/saved';
 import { searchRadiusLabel, useSearchRadius } from '@/services/search-radius';
 import { useAvatarUpload, useCurrentUser, useInterests, useUserMeets } from '@/services/user';
+import { darkPalette, makeStyles, useTheme } from '@/theme';
 
 export default function ProfileScreen() {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const [alerts, setAlerts] = useState(true);
   const { user, isLoading, isGuest, isPublisher, signOut } = useCurrentUser();
@@ -39,7 +42,7 @@ export default function ProfileScreen() {
   if (isLoading) {
     return (
       <View style={[styles.screen, styles.centered]}>
-        <ActivityIndicator color={Colors.accent} />
+        <ActivityIndicator color={c.accentText} />
       </View>
     );
   }
@@ -82,16 +85,17 @@ export default function ProfileScreen() {
           />
           {isUploading && (
             <View style={[styles.avatar, styles.avatarBusy]}>
-              <ActivityIndicator color={Colors.accent} />
+              {/* Va sobre una capa oscura en los dos temas. */}
+              <ActivityIndicator color={darkPalette.accentText} />
             </View>
           )}
           <View style={styles.avatarBadge}>
-            <Icon name="camera" size={16} color={Colors.canvas} />
+            <Icon name="camera" size={16} color={c.onAccent} />
           </View>
         </Pressable>
         <View style={styles.nameRow}>
           <Text variant="title">{user.name ?? 'Sin nombre'}</Text>
-          {isPublisher && <Icon name="verified" size={18} color={Colors.accent} />}
+          {isPublisher && <Icon name="verified" size={18} color={c.accentText} />}
         </View>
         <Text variant="label" tone="secondary">
           {user.email}
@@ -115,7 +119,7 @@ export default function ProfileScreen() {
         style={({ pressed }) => pressed && { opacity: 0.75 }}>
         <Card style={styles.car}>
           <View style={styles.rowIcon}>
-            <Icon name="car" size={20} color={Colors.accent} />
+            <Icon name="car" size={20} color={c.accentText} />
           </View>
           <View style={{ flex: 1 }}>
             <Text variant="heading" numberOfLines={1}>
@@ -125,7 +129,7 @@ export default function ProfileScreen() {
               {cars.length > 1 ? `Mi garage · ${cars.length} autos` : 'Mi garage'}
             </Text>
           </View>
-          <Icon name="chevron" size={18} color={Colors.textSecondary} />
+          <Icon name="chevron" size={18} color={c.textSecondary} />
         </Card>
       </Pressable>
 
@@ -134,8 +138,8 @@ export default function ProfileScreen() {
           <Switch
             value={alerts}
             onValueChange={setAlerts}
-            trackColor={{ true: Colors.accent, false: Colors.raised }}
-            thumbColor={alerts ? Colors.onAccent : Colors.textSecondary}
+            trackColor={{ true: c.accentText, false: c.raised }}
+            thumbColor={alerts ? c.onAccent : c.textSecondary}
           />
         </Row> */}
         <Row
@@ -193,13 +197,15 @@ type RowProps = {
 };
 
 function Row({ icon, label, value, destructive, last, expanded, onPress, children }: RowProps) {
-  const color = destructive ? Colors.error : Colors.text;
+  const { colors: c } = useTheme();
+  const styles = useStyles();
+  const color = destructive ? c.error : c.text;
   return (
     <Pressable
       onPress={onPress}
       disabled={!onPress && !!children}
       style={({ pressed }) => [styles.row, !last && styles.rowBorder, pressed && { opacity: 0.7 }]}>
-      <Icon name={icon} size={20} color={destructive ? Colors.error : Colors.textSecondary} />
+      <Icon name={icon} size={20} color={destructive ? c.error : c.textSecondary} />
       <Text variant="heading" style={[styles.rowLabel, { color, fontSize: 16 }]}>
         {label}
       </Text>
@@ -211,15 +217,15 @@ function Row({ icon, label, value, destructive, last, expanded, onPress, childre
         ) : null)}
       {!children && !destructive && (
         <View style={expanded && { transform: [{ rotate: '90deg' }] }}>
-          <Icon name="chevron" size={18} color={Colors.textSecondary} />
+          <Icon name="chevron" size={18} color={c.textSecondary} />
         </View>
       )}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxl, gap: Spacing.xl },
   centered: { alignItems: 'center', justifyContent: 'center' },
   guest: { gap: Spacing.md, paddingHorizontal: Spacing.lg },
@@ -232,7 +238,7 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 48,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   avatarBusy: {
     position: 'absolute',
@@ -249,27 +255,27 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     borderWidth: 2,
-    borderColor: Colors.canvas,
+    borderColor: c.canvas,
   },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   stats: { flexDirection: 'row' },
   stat: { flex: 1, alignItems: 'center', gap: 2 },
-  statDivider: { borderLeftWidth: 1, borderLeftColor: Colors.border },
+  statDivider: { borderLeftWidth: 1, borderLeftColor: c.border },
   car: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, padding: Spacing.lg },
   rowIcon: {
     width: 40,
     height: 40,
     borderRadius: Radius.md,
-    backgroundColor: Colors.raised,
+    backgroundColor: c.raised,
     alignItems: 'center',
     justifyContent: 'center',
   },
   list: { paddingHorizontal: Spacing.lg },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, minHeight: 60 },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: c.border },
   rowLabel: { flex: 1 },
   // Sangría alineada con el texto de las filas; el borde inferior cierra la última opción antes de "Cerrar sesión".
-  radiusOption: { paddingLeft: Spacing.xl + Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.border },
-});
+  radiusOption: { paddingLeft: Spacing.xl + Spacing.md, borderBottomWidth: 1, borderBottomColor: c.border },
+}));

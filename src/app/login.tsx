@@ -2,10 +2,12 @@ import { showDialog } from '@/components/dialog';
 import { Icon } from '@/components/icon';
 import { Text } from '@/components/text';
 import { Button, Fade, Wordmark } from '@/components/ui';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { TimeoutError, withTimeout } from '@/lib/with-timeout';
+import { DarkScope, makeStyles, useTheme } from '@/theme';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
@@ -18,7 +20,19 @@ import { useAuthActions } from '@convex-dev/auth/react';
 // A dónde vuelve el navegador después de Google: exp://<ip>:8081/--/ en Expo Go, gridd:/// en un build.
 const redirectTo = Linking.createURL('/');
 
+// El login es una foto a pantalla completa: se ve oscuro en los dos temas.
 export default function LoginScreen() {
+  return (
+    <DarkScope>
+      <StatusBar style="light" />
+      <LoginContent />
+    </DarkScope>
+  );
+}
+
+function LoginContent() {
+  const { colors: c } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const { signIn } = useAuthActions();
   const [busy, setBusy] = useState(false);
@@ -73,7 +87,7 @@ export default function LoginScreen() {
             <Text variant="label" tone="secondary">
               Explorar sin cuenta
             </Text>
-            <Icon name="arrow" size={16} color={Colors.textSecondary} />
+            <Icon name="arrow" size={16} color={c.textSecondary} />
           </Pressable>
         </View>
       </View>
@@ -81,8 +95,8 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.canvas },
+const useStyles = makeStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.canvas },
   photo: { flex: 1 },
   content: { paddingHorizontal: Spacing.lg, gap: Spacing.lg },
   headline: { fontSize: 30, lineHeight: 34, textTransform: 'none' },
@@ -94,4 +108,4 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: Spacing.md,
   },
-});
+}));

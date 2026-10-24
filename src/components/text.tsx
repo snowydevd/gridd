@@ -1,6 +1,7 @@
 import { StyleSheet, Text as RNText, type TextProps as RNTextProps } from 'react-native';
 
-import { Colors, Fonts } from '@/constants/theme';
+import { Fonts } from '@/constants/theme';
+import { useTheme, type Palette } from '@/theme';
 
 type Variant = 'display' | 'title' | 'heading' | 'body' | 'label' | 'caption' | 'overline';
 type Tone = 'primary' | 'secondary' | 'disabled' | 'accent' | 'onAccent' | 'error';
@@ -10,17 +11,19 @@ export type TextProps = RNTextProps & {
   tone?: Tone;
 };
 
-const toneColor: Record<Tone, string> = {
-  primary: Colors.text,
-  secondary: Colors.textSecondary,
-  disabled: Colors.textDisabled,
-  accent: Colors.accent,
-  onAccent: Colors.onAccent,
-  error: Colors.error,
+// `accent` como texto es `accentText`: el lima sólo se lee sobre fondo oscuro.
+const toneToken: Record<Tone, keyof Palette> = {
+  primary: 'text',
+  secondary: 'textSecondary',
+  disabled: 'textDisabled',
+  accent: 'accentText',
+  onAccent: 'onAccent',
+  error: 'error',
 };
 
 export function Text({ variant = 'body', tone = 'primary', style, ...rest }: TextProps) {
-  return <RNText style={[styles[variant], { color: toneColor[tone] }, style]} {...rest} />;
+  const { colors } = useTheme();
+  return <RNText style={[styles[variant], { color: colors[toneToken[tone]] }, style]} {...rest} />;
 }
 
 const styles = StyleSheet.create({
